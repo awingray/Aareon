@@ -9,9 +9,11 @@ services:
       - POSTGRES_DB=invoice_engine_database
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python /code/manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
     ports:
@@ -20,3 +22,6 @@ services:
       - db
     environment:
       - DB_HOST=db
+
+volumes:
+  postgres_data:

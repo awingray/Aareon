@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('', include('InvoiceEngineApp.urls')), # home page (localhost:8000)
-    path('admin/', admin.site.urls), # admin page (localhost:8000/admin/
+    path('invoice_engine/', include('InvoiceEngineApp.urls')),  # home page (localhost:8000)
+    path('', include('django.contrib.auth.urls')),
+    path('admin/', admin.site.urls),  # admin page (localhost:8000/admin/
 ]

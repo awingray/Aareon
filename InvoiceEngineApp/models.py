@@ -8,11 +8,10 @@ class Tenancy(models.Model):
     A tenant can manage multiple companies, but one company cannot be managed by multiple tenants. Therefore, the
     company_id is the primary key.
     """
-    company_id = models.PositiveIntegerField(primary_key=True)
+    company_id = models.AutoField(primary_key=True)
     tenancy_id = models.PositiveIntegerField()
     name = models.CharField(max_length=30)
     number_of_contracts = models.PositiveIntegerField(default=0)
-    contracts_to_prolong = models.PositiveIntegerField(default=0)  # CHECK THIS WITH CLIENT
     last_invoice_number = models.PositiveIntegerField()
     day_next_prolong = models.DateField()
 
@@ -26,8 +25,8 @@ class ContractType(models.Model):
 
     A contract type always corresponds to a tenancy.
     """
-    contract_type_id = models.PositiveIntegerField(primary_key=True)
-    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE, db_index=False)  # Ask if this should cascade
+    contract_type_id = models.AutoField(primary_key=True)
+    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)  # Ask if this should cascade
     code = models.PositiveIntegerField()
     type = models.CharField(max_length=1)
     description = models.CharField(max_length=50)
@@ -44,13 +43,14 @@ class BaseComponent(models.Model):
 
     A base component always corresponds to a tenancy.
     """
-    base_component_id = models.PositiveIntegerField(primary_key=True)
-    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE, db_index=False)  # Ask if this should cascade
+    base_component_id = models.AutoField(primary_key=True)
+    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)  # Ask if this should cascade
     code = models.PositiveIntegerField()  # DESCRIPTION
     description = models.CharField(max_length=50)
     general_ledger_debit = models.CharField(max_length=10)
     general_ledger_credit = models.CharField(max_length=10)
     general_ledger_dimension = models.CharField(max_length=10)
+    unit_id = models.CharField(max_length=10)
 
     def __str__(self):
         return self.tenancy.name + " - " + self.description
@@ -62,8 +62,8 @@ class VATRate(models.Model):
 
     A VAT rate always corresponds to a tenancy.
     """
-    vat_rate_id = models.PositiveIntegerField(primary_key=True)
-    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE, db_index=False)  # Ask if this should cascade
+    vat_rate_id = models.AutoField(primary_key=True)
+    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)  # Ask if this should cascade
     type = models.PositiveIntegerField()
     description = models.CharField(max_length=30)
     start_date = models.DateField()
