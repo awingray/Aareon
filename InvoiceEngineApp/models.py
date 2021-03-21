@@ -12,11 +12,19 @@ class Tenancy(models.Model):
     tenancy_id = models.PositiveIntegerField()
     name = models.CharField(max_length=30)
     number_of_contracts = models.PositiveIntegerField(default=0)
-    last_invoice_number = models.PositiveIntegerField()
+    last_invoice_number = models.PositiveIntegerField(default=0)
     day_next_prolong = models.DateField()
 
     def __str__(self):
         return self.name
+
+    def get_details(self):
+        """Method to print all fields and their values."""
+        return {'name': self.name,
+                'number of contracts': self.number_of_contracts,
+                'last invoice number': self.last_invoice_number,
+                'date of next prolonging': self.day_next_prolong
+                }
 
 
 class ContractType(models.Model):
@@ -35,6 +43,16 @@ class ContractType(models.Model):
 
     def __str__(self):
         return self.tenancy.name + " - " + self.description
+
+    def get_details(self):
+        """Method to print all fields and their values."""
+        return {'tenancy': self.tenancy,
+                'code': self.code,
+                'type': self.type,
+                'description': self.description,
+                'general ledger debit': self.general_ledger_debit,
+                'general ledger credit': self.general_ledger_credit
+                }
 
 
 class BaseComponent(models.Model):
@@ -55,6 +73,17 @@ class BaseComponent(models.Model):
     def __str__(self):
         return self.tenancy.name + " - " + self.description
 
+    def get_details(self):
+        """Method to print all fields and their values."""
+        return {'tenancy': self.tenancy,
+                'code': self.code,
+                'description': self.description,
+                'general ledger debit': self.general_ledger_debit,
+                'general ledger credit': self.general_ledger_credit,
+                'general ledger dimension': self.general_ledger_dimension,
+                'unit id': self.unit_id
+                }
+
 
 class VATRate(models.Model):
     """The VAT rate defines the value added tax charged for a contract line.  In the Netherlands, there are three types
@@ -74,3 +103,15 @@ class VATRate(models.Model):
 
     def __str__(self):
         return self.tenancy.name + " - " + self.description
+
+    def get_details(self):
+        """Method to print all fields and their values."""
+        return {'tenancy': self.tenancy,
+                'type': self.type,
+                'description': self.description,
+                'start date': self.start_date,
+                'end date': self.end_date,
+                'percentage': self.percentage,
+                'general ledger account': self.general_ledger_account,
+                'general ledger dimension': self.general_ledger_dimension
+                }
