@@ -5,6 +5,7 @@ from InvoiceEngineApp.views.tenancy_views import *
 from InvoiceEngineApp.views.contract_type_views import *
 from InvoiceEngineApp.views.base_component_views import *
 from InvoiceEngineApp.views.vat_rate_views import *
+from InvoiceEngineApp.views.contract_views import *
 
 
 urlpatterns = [
@@ -19,7 +20,7 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/update/', TenancyUpdateView.as_view(), name='tenancy_update'),
     path('profile/tenancies/<int:company_id>/delete/', TenancyDeleteView.as_view(), name='tenancy_delete'),
 
-    # contract type pages.
+    # Contract type pages.
     path('profile/tenancies/<int:company_id>/contract_types/',
          ContractTypeListView.as_view(),
          name='contract_type_list'
@@ -41,7 +42,7 @@ urlpatterns = [
          name='contract_type_delete'
          ),
 
-    # base component pages.
+    # Base component pages.
     path('profile/tenancies/<int:company_id>/base_components/',
          BaseComponentListView.as_view(),
          name='base_component_list'
@@ -83,5 +84,27 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/vat_rates/<int:vat_rate_id>/delete/',
          VATRateDeleteView.as_view(),
          name='vat_rate_delete'
+         ),
+
+    # Contract pages.
+    path('profile/tenancies/<int:company_id>/contracts/',
+         ContractListView.as_view(),
+         name='contract_list'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/create/',
+         ContractCreateView.as_view(),
+         name='contract_create'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/',
+         ContractDetailView.as_view(),
+         name='contract_details'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/update/',
+         ContractUpdateView.as_view(),
+         name='contract_update'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/delete/',
+         ContractDeleteView.as_view(),
+         name='contract_delete'
          ),
 ]
