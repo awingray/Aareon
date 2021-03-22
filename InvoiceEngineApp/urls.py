@@ -4,6 +4,7 @@ from InvoiceEngineApp.views.general_views import *
 from InvoiceEngineApp.views.tenancy_views import *
 from InvoiceEngineApp.views.contract_type_views import *
 from InvoiceEngineApp.views.base_component_views import *
+from InvoiceEngineApp.views.vat_rate_views import *
 
 
 urlpatterns = [
@@ -60,5 +61,27 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/base_components/<int:base_component_id>/delete/',
          BaseComponentDeleteView.as_view(),
          name='base_component_delete'
-         )
+         ),
+
+    # VAT rate pages.
+    path('profile/tenancies/<int:company_id>/vat_rates/',
+         VATRateListView.as_view(),
+         name='vat_rate_list'
+         ),
+    path('profile/tenancies/<int:company_id>/vat_rates/create/',
+         VATRateCreateView.as_view(),
+         name='vat_rate_create'
+         ),
+    path('profile/tenancies/<int:company_id>/vat_rates/<int:vat_rate_id>/',
+         VATRateDetailView.as_view(),
+         name='vat_rate_details'
+         ),
+    path('profile/tenancies/<int:company_id>/vat_rates/<int:vat_rate_id>/update/',
+         VATRateUpdateView.as_view(),
+         name='vat_rate_update'
+         ),
+    path('profile/tenancies/<int:company_id>/vat_rates/<int:vat_rate_id>/delete/',
+         VATRateDeleteView.as_view(),
+         name='vat_rate_delete'
+         ),
 ]

@@ -1,4 +1,5 @@
 from django.db import models
+from django.shortcuts import get_object_or_404
 
 
 class Tenancy(models.Model):
@@ -53,6 +54,9 @@ class ContractType(models.Model):
                 'general ledger debit': self.general_ledger_debit,
                 'general ledger credit': self.general_ledger_credit
                 }
+
+    def get_filtered_list(self, company_id):
+        return self.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=company_id))
 
 
 class BaseComponent(models.Model):

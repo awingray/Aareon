@@ -1,4 +1,6 @@
 from django import forms
+from django.shortcuts import get_object_or_404
+
 from InvoiceEngineApp import models
 
 
@@ -17,9 +19,25 @@ class ContractTypeForm(forms.ModelForm):
         model = models.ContractType
         exclude = ['tenancy']
 
+    def set_tenancy(self, company_id):
+        self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
+
 
 class BaseComponentForm(forms.ModelForm):
     """A form for the user to set the fields of a base component.  Tenancy is added automatically."""
     class Meta:
         model = models.BaseComponent
         exclude = ['tenancy']
+
+    def set_tenancy(self, company_id):
+        self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
+
+
+class VATRateForm(forms.ModelForm):
+    """A form for the user to set the fields of a VAT rate.  Tenancy is added automatically."""
+    class Meta:
+        model = models.VATRate
+        exclude = ['tenancy']
+
+    def set_tenancy(self, company_id):
+        self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)

@@ -18,8 +18,8 @@ class ContractTypeListView(ListView):
     template_name = 'InvoiceEngineApp/contract_type_list.html'
 
     def get_queryset(self):
-        id_ = self.kwargs.get('company_id')
-        return ContractType.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=id_))
+        company_id = self.kwargs.get('company_id')
+        return ContractType.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=company_id))
 
     # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):
@@ -41,8 +41,8 @@ class ContractTypeCreateView(CreateView):
     def form_valid(self, form):
         # This may be too much logic in the view, not sure.
         # Add the reference to the proper tenancy to the contract type.
-        id_ = self.kwargs.get('company_id')
-        form.instance.tenancy = get_object_or_404(Tenancy, company_id=id_)
+        company_id = self.kwargs.get('company_id')
+        form.set_tenancy(company_id)
         return super().form_valid(form)
 
     def get_success_url(self):
