@@ -68,17 +68,31 @@ class ContractForm(forms.ModelForm):
 class ComponentForm(forms.ModelForm):
     """A form for the user to set the fields of a component."""
     def __init__(self, *args, **kwargs):
-        # Receive the company_id from the view, and use it to make a selection of the available contracts,
-        # base components, and vat rates
+        # Receive the company_id from the view, and use it to make a selection of the available base components and
+        # vat rates
         company_id = kwargs.pop('company_id')
 
         super(ComponentForm, self).__init__(*args, **kwargs)
 
         selected_tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
 
-        self.fields['contract'].queryset = models.Contract.objects.filter(tenancy=selected_tenancy)
         self.fields['base_component'].queryset = models.BaseComponent.objects.filter(tenancy=selected_tenancy)
         self.fields['vat_rate'].queryset = models.VATRate.objects.filter(tenancy=selected_tenancy)
+
+    def finalize_creation(self, contract_id):
+        self.instance.contract = get_object_or_404(models.Contract, contract_id=contract_id)
+        self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage/100
+        self.instance.total_amount = self.instance.base_amount + self.instance.vat_amount
+
+        self.instance.contract.balance += self.instance.total_amount
+        self.instance.contract.total_amount += self.instance.total_amount
+        self.instance.contract.base_amount += self.instance.base_amount
+        self.instance.contract.vat_amount += self.instance.vat_amount
+        self.instance.contract.save()
+
+    def finalize_update(self):
+        # remove old base amount from contract and update accordingly
+        self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
 
     class Meta:
         model = models.Component

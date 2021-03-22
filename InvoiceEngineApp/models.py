@@ -183,6 +183,9 @@ class Contract(models.Model):
     def __str__(self):
         return "Contact: " + self.tenancy.name + " - " + self.contract_type.description
 
+    def get_components(self):
+        return Component.objects.filter(contract=self)
+
     def get_details(self):
         """Method to print all fields and their values."""
         return {'tenancy': self.tenancy,
@@ -244,10 +247,13 @@ class Component(models.Model):
     next_date_prolong = models.DateField()
     invoice_number = models.FloatField()
     base_amount = models.FloatField()
-    vat_amount = models.FloatField()
-    total_amount = models.FloatField()
+    vat_amount = models.FloatField(default=0.0)
+    total_amount = models.FloatField(default=0.0)
     unit_id = models.CharField(max_length=10)
     unit_amount = models.FloatField()
+
+    def __str__(self):
+        return "Component: " + self.description
 
     class Meta:
         constraints = [

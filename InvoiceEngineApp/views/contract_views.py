@@ -1,6 +1,4 @@
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError
-from django.http import HttpResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.decorators import method_decorator
@@ -23,9 +21,10 @@ class ContractListView(ListView):
         id_ = self.kwargs.get('company_id')
         return Contract.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=id_))
 
-    # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):
-        context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
+        context = {'contract_list': self.get_queryset(),
+                   'company_id': self.kwargs.get('company_id')
+                   }
         return render(request, self.template_name, context)
 
 
@@ -47,7 +46,6 @@ class ContractCreateView(CreateView):
         return context
 
     def form_valid(self, form):
-        # This may be too much logic in the view, not sure.
         # Add the reference to the proper tenancy to the contract.
         company_id = self.kwargs.get('company_id')
         form.set_tenancy(company_id)

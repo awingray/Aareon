@@ -6,6 +6,7 @@ from InvoiceEngineApp.views.contract_type_views import *
 from InvoiceEngineApp.views.base_component_views import *
 from InvoiceEngineApp.views.vat_rate_views import *
 from InvoiceEngineApp.views.contract_views import *
+from InvoiceEngineApp.views.component_views import *
 
 
 urlpatterns = [
@@ -106,5 +107,19 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/delete/',
          ContractDeleteView.as_view(),
          name='contract_delete'
+         ),
+
+    # Component pages.
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/create/',
+         ComponentCreateView.as_view(),
+         name='component_create'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/<int:component_id>/update/',
+         ComponentUpdateView.as_view(),
+         name='component_update'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/<int:component_id>/delete/',
+         ComponentDeleteView.as_view(),
+         name='component_delete'
          ),
 ]

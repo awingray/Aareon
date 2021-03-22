@@ -2,16 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VAT rate list</title>
+    <title>Contract list</title>
 </head>
 <body>
     <!-- Display objects -->
-    {% for object in object_list %}
-        <p>description: {{ object.description }}</p>
+    {% for contract in contract_list %}
+        <p>description: {{ contract.description }}</p>
         <!-- Give the user options to view, update, and delete the contract type -->
-        <p><a href="{% url 'contract_details' company_id object.contract_id %}">Details</a></p>
-        <p><a href="{% url 'contract_update' company_id object.contract_id %}">Update</a></p>
-        <p><a href="{% url 'contract_delete' company_id object.contract_id %}">Delete</a></p>
+        <p><a href="{% url 'contract_details' company_id contract.contract_id %}">Details</a></p>
+        <p><a href="{% url 'contract_update' company_id contract.contract_id %}">Update</a></p>
+        <p><a href="{% url 'contract_delete' company_id contract.contract_id %}">Delete</a></p>
+
+        {% for component in contract.get_components %}
+            <p>
+                component: {{ component.description }}
+                <a href="{% url 'component_update' company_id contract.contract_id component.component_id %}">Update component</a>
+                <a href="{% url 'component_delete' company_id contract.contract_id component.component_id %}">Delete component</a>
+            </p>
+        {% empty %}
+            No components
+        {% endfor %}
+
+        <p>
+            <a href="{% url 'component_create' company_id contract.contract_id %}">Create component</a>
+        </p>
 
         <hr/>
     <!-- If object_list is empty  -->

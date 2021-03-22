@@ -39,7 +39,6 @@ class BaseComponentCreateView(CreateView):
         return context
 
     def form_valid(self, form):
-        # This may be too much logic in the view, not sure.
         # Add the reference to the proper tenancy to the base component.
         company_id = self.kwargs.get('company_id')
         form.set_tenancy(company_id)
