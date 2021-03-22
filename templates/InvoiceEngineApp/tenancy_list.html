@@ -13,7 +13,10 @@
         <p><a href="{% url 'tenancy_update' object.company_id %}">Update</a></p>
         <p><a href="{% url 'tenancy_delete' object.company_id %}">Delete</a></p>
 
-        <p><a href="{% url 'contract_type_list' object.company_id %}">View contract types</a></p>
+        <p>
+            <a href="{% url 'contract_type_list' object.company_id %}">View contract types</a>
+            <a href="{% url 'base_component_list' object.company_id %}">View base components</a>
+        </p>
 
         <hr/>
     <!-- If object_list is empty  -->

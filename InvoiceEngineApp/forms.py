@@ -12,7 +12,14 @@ class TenancyFrom(forms.ModelForm):
 
 
 class ContractTypeForm(forms.ModelForm):
-    """A form for the user to set """
+    """A form for the user to set the fields of a contract type.  Tenancy is added automatically."""
     class Meta:
         model = models.ContractType
+        exclude = ['tenancy']
+
+
+class BaseComponentForm(forms.ModelForm):
+    """A form for the user to set the fields of a base component.  Tenancy is added automatically."""
+    class Meta:
+        model = models.BaseComponent
         exclude = ['tenancy']
