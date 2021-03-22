@@ -9,16 +9,19 @@
     {% for object in object_list %}
         <p>name: {{ object.name }}</p>
         <!-- Give the user options to view, update, and delete the tenancy -->
-        <p><a href="{% url 'tenancy_details' object.company_id%}">Details</a></p>
-        <p><a href="{% url 'tenancy_update' object.company_id%}">Update</a></p>
-        <p><a href="{% url 'tenancy_delete' object.company_id%}">Delete</a></p>
+        <p><a href="{% url 'tenancy_details' object.company_id %}">Details</a></p>
+        <p><a href="{% url 'tenancy_update' object.company_id %}">Update</a></p>
+        <p><a href="{% url 'tenancy_delete' object.company_id %}">Delete</a></p>
+
+        <p><a href="{% url 'contract_type_list' object.company_id %}">View contract types</a></p>
+
         <hr/>
     <!-- If object_list is empty  -->
     {% empty %}
         <p>No objects yet</p>
     {% endfor %}
-    <p></p><a href="{% url 'tenancy_create' %}">Create new tenancy</a></p>
-    <p></p><a href="{% url 'profile' %}">Back To Profile page</a></p>
+    <p><a href="{% url 'tenancy_create' %}">Create new tenancy</a></p>
+    <p><a href="{% url 'profile' %}">Back To Profile page</a></p>
 
 </body>
 </html>

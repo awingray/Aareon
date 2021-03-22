@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>New {{ object_name }}</title>
+    <title>New {{ object_type }}</title>
 </head>
 <body>
     <form method="POST" enctype="multipart/form-data">
@@ -13,6 +13,12 @@
         <!-- Using the formset -->
         {{ form.as_p }}
 
+        <!-- Some pages require a link back to the proper company_id. -->
+        {% if list_page|length == 1 %}
+            <p><a href="{% url list_page.0 %}">Return to list</a></p>
+        {% else %}
+            <p><a href="{% url list_page.0 list_page.1 %}">Return to list</a></p>
+        {% endif %}
         <input type="submit" value="Submit">
     </form>
 </body>

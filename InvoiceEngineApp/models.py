@@ -42,7 +42,7 @@ class ContractType(models.Model):
     general_ledger_credit = models.CharField(max_length=10)
 
     def __str__(self):
-        return self.tenancy.name + " - " + self.description
+        return self.description
 
     def get_details(self):
         """Method to print all fields and their values."""

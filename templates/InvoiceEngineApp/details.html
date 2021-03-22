@@ -10,7 +10,11 @@
         <p>{{ key }}: {{ value }}</p>
     {% endfor %}
 
-    <!-- Direct the user back to the list -->
-    <p><a href="{% url list_page %}">Back To list</a></p>
+    <!-- Some pages require a link back to the proper company_id. -->
+        {% if list_page|length == 1 %}
+            <p><a href="{% url list_page.0 %}">Return to list</a></p>
+        {% else %}
+            <p><a href="{% url list_page.0 list_page.1 %}">Return to list</a></p>
+        {% endif %}
 </body>
 </html>
