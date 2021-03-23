@@ -63,6 +63,10 @@ class ContractForm(forms.ModelForm):
 
     def set_tenancy(self, company_id):
         self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
+        self.instance.tenancy.number_of_contracts += 1
+
+        self.instance.tenancy.clean()
+        self.instance.tenancy.save()
 
 
 class ComponentForm(forms.ModelForm):

@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.decorators import method_decorator
@@ -108,8 +109,18 @@ class ContractDeleteView(DeleteView):
         return context
 
     def get_object(self, queryset=Contract.objects.all()):
-        id_ = self.kwargs.get('contract_id')
-        return get_object_or_404(Contract, contract_id=id_)
+        contract_id = self.kwargs.get('contract_id')
+        return get_object_or_404(Contract, contract_id=contract_id)
+
+    def delete(self, request, *args, **kwargs):
+        contract = self.get_object()
+
+        contract.tenancy.number_of_contracts -= 1
+        contract.tenancy.clean()
+        contract.tenancy.save()
+
+        contract.delete()
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
