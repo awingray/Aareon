@@ -21,7 +21,6 @@ class ContractTypeListView(ListView):
         company_id = self.kwargs.get('company_id')
         return ContractType.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=company_id))
 
-    # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):
         context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
         return render(request, self.template_name, context)

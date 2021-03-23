@@ -81,19 +81,20 @@ class ComponentForm(forms.ModelForm):
 
     def finalize_creation(self, contract_id):
         self.instance.contract = get_object_or_404(models.Contract, contract_id=contract_id)
-        self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage/100
+        self.compute_derived_fields()
+
+    def compute_derived_fields(self):
+        self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
         self.instance.total_amount = self.instance.base_amount + self.instance.vat_amount
 
         self.instance.contract.balance += self.instance.total_amount
         self.instance.contract.total_amount += self.instance.total_amount
         self.instance.contract.base_amount += self.instance.base_amount
         self.instance.contract.vat_amount += self.instance.vat_amount
-        self.instance.contract.save()
 
-    def finalize_update(self):
-        # remove old base amount from contract and update accordingly
-        self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
+        self.instance.contract.clean()
+        self.instance.contract.save()
 
     class Meta:
         model = models.Component
-        exclude = ['vat_amount', 'total_amount']
+        exclude = ['contract', 'vat_amount', 'total_amount']

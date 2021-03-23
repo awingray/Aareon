@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.decorators import method_decorator
@@ -33,8 +34,6 @@ class ComponentCreateView(CreateView):
     def form_valid(self, form):
         # Add the reference to the proper contract to the contract.
         contract_id = self.kwargs.get('contract_id')
-        form.set_contract(contract_id)
-
         form.finalize_creation(contract_id)
 
         return super().form_valid(form)
@@ -56,8 +55,19 @@ class ComponentUpdateView(UpdateView):
         return kwargs
 
     def get_object(self, queryset=Component.objects.all()):
-        id_ = self.kwargs.get('component_id')
-        return get_object_or_404(Component, component_id=id_)
+        component_id = self.kwargs.get('component_id')
+        component = get_object_or_404(Component, component_id=component_id)
+
+        component.contract.base_amount -= component.base_amount
+        component.contract.total_amount -= component.total_amount
+        component.contract.balance -= component.total_amount
+        component.contract.vat_amount -= component.vat_amount
+
+        return component
+
+    def form_valid(self, form):
+        form.compute_derived_fields()
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
@@ -74,8 +84,23 @@ class ComponentDeleteView(DeleteView):
         return context
 
     def get_object(self, queryset=Component.objects.all()):
-        id_ = self.kwargs.get('component_id')
-        return get_object_or_404(Component, component_id=id_)
+        component_id = self.kwargs.get('component_id')
+        return get_object_or_404(Component, component_id=component_id)
+
+    def delete(self, request, *args, **kwargs):
+        component = self.get_object()
+
+        # Remove the amounts from the contract
+        contract = component.contract
+        contract.base_amount -= component.base_amount
+        contract.total_amount -= component.total_amount
+        contract.balance -= component.total_amount
+        contract.vat_amount -= component.vat_amount
+        contract.clean()
+        contract.save()
+
+        component.delete()
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
