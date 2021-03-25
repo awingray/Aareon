@@ -63,8 +63,8 @@ class ContractForm(forms.ModelForm):
 
     def set_tenancy(self, company_id):
         self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
-        self.instance.tenancy.number_of_contracts += 1
 
+        self.instance.tenancy.number_of_contracts += 1
         self.instance.tenancy.clean()
         self.instance.tenancy.save()
 
@@ -91,6 +91,7 @@ class ComponentForm(forms.ModelForm):
         self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
         self.instance.total_amount = self.instance.base_amount + self.instance.vat_amount
 
+        # Update contract amount fields
         self.instance.contract.balance += self.instance.total_amount
         self.instance.contract.total_amount += self.instance.total_amount
         self.instance.contract.base_amount += self.instance.base_amount
@@ -102,3 +103,13 @@ class ComponentForm(forms.ModelForm):
     class Meta:
         model = models.Component
         exclude = ['contract', 'vat_amount', 'total_amount']
+
+
+class ContractPersonForm(forms.ModelForm):
+    """A form for the user to set the fields of a contract person."""
+    def finalize_creation(self, contract_id):
+        self.instance.contract = get_object_or_404(models.Contract, contract_id=contract_id)
+
+    class Meta:
+        model = models.ContractPerson
+        exclude = ['contract']

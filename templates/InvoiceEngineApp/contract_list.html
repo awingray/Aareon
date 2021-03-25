@@ -13,6 +13,8 @@
         <p><a href="{% url 'contract_update' company_id contract.contract_id %}">Update</a></p>
         <p><a href="{% url 'contract_delete' company_id contract.contract_id %}">Delete</a></p>
 
+        ----<br>
+
         {% for component in contract.get_components %}
             <p>
                 component: {{ component.description }}
@@ -25,6 +27,22 @@
 
         <p>
             <a href="{% url 'component_create' company_id contract.contract_id %}">Create component</a>
+        </p>
+
+        ----<br>
+
+        {% for contract_person in contract.get_contract_persons %}
+            <p>
+                contract person: {{ contract_person.name }}
+                <a href="{% url 'contract_person_update' company_id contract.contract_id contract_person.contract_person_id %}">Update contract person</a>
+                <a href="{% url 'contract_person_delete' company_id contract.contract_id contract_person.contract_person_id %}">Delete contract person</a>
+            </p>
+        {% empty %}
+            No contract persons
+        {% endfor %}
+
+        <p>
+            <a href="{% url 'contract_person_create' company_id contract.contract_id %}">Create contract person</a>
         </p>
 
         <hr/>

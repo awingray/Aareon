@@ -1,4 +1,3 @@
-from django.contrib.postgres.constraints import ExclusionConstraint
 from django.db import models
 from django.db.models import CheckConstraint, Q, F
 from django.shortcuts import get_object_or_404
@@ -186,6 +185,9 @@ class Contract(models.Model):
     def get_components(self):
         return Component.objects.filter(contract=self)
 
+    def get_contract_persons(self):
+        return ContractPerson.objects.filter(contract=self)
+
     def get_details(self):
         """Method to print all fields and their values."""
         return {'tenancy': self.tenancy,
@@ -262,3 +264,42 @@ class Component(models.Model):
                 name='component_start_before_end'
             )
         ]
+
+
+class ContractPerson(models.Model):
+    """A contract contains one or more contract persons."""
+    AI = 'A'
+    EMAIL = 'E'
+    SMS = 'S'
+    LETTER = 'L'
+    INVOICE = 'I'
+
+    PAYMENT_METHOD_CHOICES = [
+        (AI, 'ai'),
+        (EMAIL, 'email'),
+        (SMS, 'sms'),
+        (LETTER, 'letter'),
+        (INVOICE, 'invoice')
+    ]
+
+    contract_person_id = models.AutoField(primary_key=True)
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)  # Ask if this should cascade
+    type = models.CharField(max_length=1)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    name = models.CharField(max_length=50)
+    address = models.CharField(max_length=50)
+    city = models.CharField(max_length=50)
+    payment_method = models.CharField(
+        max_length=1,
+        choices=PAYMENT_METHOD_CHOICES,
+        default=INVOICE
+    )
+    iban = models.CharField(max_length=17)
+    mandate = models.PositiveIntegerField()
+    email = models.EmailField()
+    percentage_of_total = models.PositiveIntegerField()
+    payment_day = models.PositiveIntegerField()
+
+    def __str__(self):
+        return "contract person " + self.name

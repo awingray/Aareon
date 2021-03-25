@@ -1,5 +1,4 @@
-from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
 from InvoiceEngineApp.views.general_views import *
 from InvoiceEngineApp.views.tenancy_views import *
 from InvoiceEngineApp.views.contract_type_views import *
@@ -7,6 +6,7 @@ from InvoiceEngineApp.views.base_component_views import *
 from InvoiceEngineApp.views.vat_rate_views import *
 from InvoiceEngineApp.views.contract_views import *
 from InvoiceEngineApp.views.component_views import *
+from InvoiceEngineApp.views.contract_person_views import *
 
 
 urlpatterns = [
@@ -121,5 +121,19 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/<int:component_id>/delete/',
          ComponentDeleteView.as_view(),
          name='component_delete'
+         ),
+
+    # Contract person pages.
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/create/',
+         ContractPersonCreateView.as_view(),
+         name='contract_person_create'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/<int:contract_person_id>/update/',
+         ContractPersonUpdateView.as_view(),
+         name='contract_person_update'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/<int:contract_person_id>/delete/',
+         ContractPersonDeleteView.as_view(),
+         name='contract_person_delete'
          ),
 ]

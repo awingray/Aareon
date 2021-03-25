@@ -1,12 +1,10 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.generic import (
     CreateView,
-    DetailView,
-    ListView,
     UpdateView,
     DeleteView
 )
@@ -20,7 +18,8 @@ class ComponentCreateView(CreateView):
     form_class = ComponentForm
 
     def get_form_kwargs(self):
-        """Overloaded to add the company id to the kwargs so the selection can be filtered."""
+        """Overloaded to add the company id to the kwargs,
+         so the selection for BaseComponent & VATRate can be filtered."""
         kwargs = super(ComponentCreateView, self).get_form_kwargs()
         kwargs['company_id'] = self.kwargs.get('company_id')
         return kwargs
