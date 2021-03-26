@@ -1,4 +1,5 @@
-from django.db import models
+from InvoiceEngineApp.models import *
+from django.db import models as models
 from django.db.models import CheckConstraint, Q, F
 from django.shortcuts import get_object_or_404
 
@@ -11,11 +12,13 @@ class Tenancy(models.Model):
     company_id is the primary key.
     """
     company_id = models.AutoField(primary_key=True)
+    contracts = models.ManyToManyField(Contract)
     tenancy_id = models.PositiveIntegerField()
     name = models.CharField(max_length=30)
     number_of_contracts = models.PositiveIntegerField(default=0)
     last_invoice_number = models.PositiveIntegerField(default=0)
     day_next_prolong = models.DateField()
+    days_until_invoice_expiration = models.PositiveSmallIntegerField(default=14)
 
     def __str__(self):
         return self.name
@@ -27,6 +30,13 @@ class Tenancy(models.Model):
                 'last invoice number': self.last_invoice_number,
                 'date of next prolonging': self.day_next_prolong
                 }
+
+    def invoice_contracts(self):
+        # Loop over all contracts and call their create_invoice() method
+        contracts = Contract.objects.all().prefetch_related(self)
+        for contract in contracts:
+            contract.create_invoice(self.days_until_invoice_expiration)
+        pass
 
 
 class ContractType(models.Model):
@@ -211,6 +221,10 @@ class Contract(models.Model):
                 'balance': self.balance
                 }
 
+    def create_invoice(self, days_until_expiration):
+        # Create an Invoice, then loop over all Components and call their create_invoice_line() method
+        pass
+
     class Meta:
         constraints = [
             CheckConstraint(
@@ -256,6 +270,10 @@ class Component(models.Model):
 
     def __str__(self):
         return "Component: " + self.description
+
+    def create_invoice_line(self):
+        # Create an InvoiceLine
+        pass
 
     class Meta:
         constraints = [
@@ -303,3 +321,38 @@ class ContractPerson(models.Model):
 
     def __str__(self):
         return "contract person " + self.name
+
+
+class Invoice(models.Model):
+    invoice_id = models.AutoField(primary_key=True)
+    contract = models.OneToOneField(Contract, on_delete=models.CASCADE)  # Ask if this should cascade
+    internal_customer_id = models.PositiveIntegerField()
+    external_customer_id = models.PositiveIntegerField()
+    description = models.CharField(max_length=50)
+    base_amount = models.FloatField()
+    vat_amount = models.FloatField(default=0.0)
+    total_amount = models.FloatField(default=0.0)
+    balance = models.FloatField(default=0.0)
+    date = models.DateField(auto_now_add=True)
+    expiration_date = models.DateField()
+    invoice_number = models.PositiveIntegerField()
+    general_ledger_account = models.CharField(max_length=10)
+
+
+class InvoiceLine(models.Model):
+    invoice_line_id = models.AutoField(primary_key=True)
+    component = models.OneToOneField(Component, on_delete=models.CASCADE)  # Ask if this should cascade
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)  # Ask if this should cascade
+    description = models.CharField(max_length=50)
+    vat_type = models.PositiveIntegerField()
+    base_amount = models.FloatField()
+    vat_amount = models.FloatField(default=0.0)
+    total_amount = models.FloatField(default=0.0)
+    invoice_number = models.FloatField()
+    general_ledger_account = models.CharField(max_length=10)
+    general_ledger_dimension_base_component = models.CharField(max_length=10)
+    general_ledger_dimension_contract_1 = models.CharField(max_length=10)
+    general_ledger_dimension_contract_2 = models.CharField(max_length=10)
+    general_ledger_dimension_vat = models.CharField(max_length=10)
+    unit_price = models.FloatField()
+    unit_id = models.CharField(max_length=10)
