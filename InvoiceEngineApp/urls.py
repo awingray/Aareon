@@ -7,6 +7,7 @@ from InvoiceEngineApp.views.vat_rate_views import *
 from InvoiceEngineApp.views.contract_views import *
 from InvoiceEngineApp.views.component_views import *
 from InvoiceEngineApp.views.contract_person_views import *
+from InvoiceEngineApp.views.invoice_views import *
 
 
 urlpatterns = [
@@ -20,6 +21,12 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/', TenancyDetailView.as_view(), name='tenancy_details'),
     path('profile/tenancies/<int:company_id>/update/', TenancyUpdateView.as_view(), name='tenancy_update'),
     path('profile/tenancies/<int:company_id>/delete/', TenancyDeleteView.as_view(), name='tenancy_delete'),
+
+    # This path is for testing the invoice_contracts button!
+    path('profile/tenancies/<int:company_id>/run_engine/',
+         TenancyListView.invoice_contracts,
+         name='invoice_contracts'
+         ),
 
     # Contract type pages.
     path('profile/tenancies/<int:company_id>/contract_types/',
@@ -135,5 +142,15 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/<int:contract_person_id>/delete/',
          ContractPersonDeleteView.as_view(),
          name='contract_person_delete'
+         ),
+
+    # Invoice pages.
+    path('profile/tenancies/<int:company_id>/invoices/',
+         InvoiceListView.as_view(),
+         name='invoice_list'
+         ),
+    path('profile/tenancies/<int:company_id>/invoices/<int:invoice_id>',
+         InvoiceDetailView.as_view(),
+         name='invoice_details'
          ),
 ]

@@ -1,5 +1,5 @@
-from InvoiceEngineApp.models import *
-from django.db import models as models
+import datetime
+from django.db import models
 from django.db.models import CheckConstraint, Q, F
 from django.shortcuts import get_object_or_404
 
@@ -27,17 +27,20 @@ class Tenancy(models.Model):
         return {'name': self.name,
                 'number of contracts': self.number_of_contracts,
                 'last invoice number': self.last_invoice_number,
-                'date of next prolonging': self.day_next_prolong
+                'date of next prolonging': self.day_next_prolong,
+                'days until invoice expiration': self.days_until_invoice_expiration
                 }
 
     def invoice_contracts(self):
-        # Lock the contracts for updates during the invoicing process
+        print("Invoicing started at " + datetime.datetime.now().__str__())
+
         # Load all information about contracts into memory to reduce database querying
-        contracts = Contract.objects.filter(tenancy=self).select_for_update()
+        contracts = self.contract_set.select_related('contract_type')
         # Loop over all contracts and call their create_invoice() method
         for contract in contracts:
             contract.create_invoice(self.days_until_invoice_expiration)
         pass
+        print("Invoicing done at " + datetime.datetime.now().__str__())
 
 
 class ContractType(models.Model):
@@ -194,10 +197,10 @@ class Contract(models.Model):
         return "Contact: " + self.tenancy.name + " - " + self.contract_type.description
 
     def get_components(self):
-        return Component.objects.filter(contract=self)
+        return self.component_set.all()
 
     def get_contract_persons(self):
-        return ContractPerson.objects.filter(contract=self)
+        return self.contractperson_set.all()
 
     def get_details(self):
         """Method to print all fields and their values."""
@@ -223,9 +226,24 @@ class Contract(models.Model):
                 }
 
     def create_invoice(self, days_until_expiration):
-        # Create an Invoice, then loop over all Components and call their create_invoice_line() method
-
-        pass
+        """Create an Invoice, then loop over all Components and call their create_invoice_line() method."""
+        # Date will default to today, no need to set it
+        invoice = Invoice.objects.create(
+            contract=self,
+            internal_customer_id=5,
+            external_customer_id=5,
+            description=self.contract_type.description,
+            base_amount=self.base_amount,
+            vat_amount=self.vat_amount,
+            total_amount=self.total_amount,
+            balance=self.balance,
+            expiration_date=datetime.date.today() + datetime.timedelta(days=days_until_expiration),
+            invoice_number=0,
+            general_ledger_account=0
+        )
+        components = self.component_set.select_related()
+        for component in components:
+            component.create_invoice_line(invoice)
 
     class Meta:
         constraints = [
@@ -273,9 +291,24 @@ class Component(models.Model):
     def __str__(self):
         return "Component: " + self.description
 
-    def create_invoice_line(self):
-        # Create an InvoiceLine
-        pass
+    def create_invoice_line(self, invoice):
+        InvoiceLine.objects.create(
+            component=self,
+            invoice=invoice,
+            description=self.description,
+            vat_type=self.vat_rate.type,
+            base_amount=self.base_amount,
+            vat_amount=self.vat_amount,
+            total_amount=self.total_amount,
+            invoice_number=self.invoice_number,
+            general_ledger_account=0,
+            general_ledger_dimension_base_component=self.base_component.general_ledger_dimension,
+            general_ledger_dimension_contract_1=self.contract.general_ledger_dimension_contract_1,
+            general_ledger_dimension_contract_2=self.contract.general_ledger_dimension_contract_2,
+            general_ledger_dimension_vat=self.vat_rate.general_ledger_dimension,
+            unit_price=self.unit_amount,
+            unit_id=self.unit_id
+        )
 
     class Meta:
         constraints = [
@@ -339,6 +372,24 @@ class Invoice(models.Model):
     expiration_date = models.DateField()
     invoice_number = models.PositiveIntegerField()
     general_ledger_account = models.CharField(max_length=10)
+
+    def get_contract_persons(self):
+        return self.invoiceline_set.all()
+
+    def get_details(self):
+        """Method to print all fields and their values."""
+        return {'internal customer id': self.internal_customer_id,
+                'external customer id': self.external_customer_id,
+                'description': self.description,
+                'base amount': self.base_amount,
+                'vat amount': self.vat_amount,
+                'total amount': self.total_amount,
+                'balance': self.balance,
+                'date': self.date,
+                'expiration date': self.expiration_date,
+                'invoice number': self.invoice_number,
+                'general ledger account': self.general_ledger_account,
+                }
 
 
 class InvoiceLine(models.Model):

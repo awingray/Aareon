@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -17,6 +18,12 @@ from InvoiceEngineApp.forms import TenancyFrom
 class TenancyListView(ListView):
     """Show the user a list of all tenancies available to them."""
     template_name = 'InvoiceEngineApp/tenancy_list.html'
+
+    def invoice_contracts(self, company_id):
+        # This function is for testing the invoice engine!
+        tenancy = get_object_or_404(Tenancy, company_id=company_id)
+        tenancy.invoice_contracts()
+        return HttpResponse("Invoicing started!")
 
     def get_queryset(self):
         # The user should only see the tenancy objects associated with themselves.
