@@ -243,6 +243,7 @@ class Contract(models.Model):
         )
         components = self.component_set.select_related()
         for component in components:
+            print("started components")
             component.create_invoice_line(invoice)
 
     class Meta:
@@ -309,6 +310,7 @@ class Component(models.Model):
             unit_price=self.unit_amount,
             unit_id=self.unit_id
         )
+        print("created invoice line: " + self.description)
 
     class Meta:
         constraints = [
@@ -373,7 +375,7 @@ class Invoice(models.Model):
     invoice_number = models.PositiveIntegerField()
     general_ledger_account = models.CharField(max_length=10)
 
-    def get_contract_persons(self):
+    def get_invoice_lines(self):
         return self.invoiceline_set.all()
 
     def get_details(self):
