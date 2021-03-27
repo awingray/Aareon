@@ -1,6 +1,7 @@
-{% extends 'InvoiceEngineApp/header.html' %}
+{% extends 'InvoiceEngineApp/base.html' %}
 
 {% block content %}
-    <p>I am a home page</p>
-    <p>Go to <a href="{% url 'login' %}">login</a></p>
+ <p style="text-align: center;margin: auto;">Welcome, log in with your USER ID below:&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</p>
+<p style="text-align: center;"><a href="{% url 'login' %}"><button class="btn btn-primary">Login</button></a></p>
+
 {% endblock %}

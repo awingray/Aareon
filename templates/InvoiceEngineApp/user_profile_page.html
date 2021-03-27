@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'InvoiceEngineApp/base.html' %}
+
+
+{% block content %}
     <p>I am a profile page</p>
     <p><a href="{% url 'tenancy_list' %}">Available tenancies</a></p>
     <p><a href="{% url 'logout' %}">log out</a></p>
-</body>
-</html>
+{% endblock %}
