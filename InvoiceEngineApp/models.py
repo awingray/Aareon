@@ -12,7 +12,6 @@ class Tenancy(models.Model):
     company_id is the primary key.
     """
     company_id = models.AutoField(primary_key=True)
-    contracts = models.ManyToManyField(Contract)
     tenancy_id = models.PositiveIntegerField()
     name = models.CharField(max_length=30)
     number_of_contracts = models.PositiveIntegerField(default=0)
@@ -32,8 +31,10 @@ class Tenancy(models.Model):
                 }
 
     def invoice_contracts(self):
+        # Lock the contracts for updates during the invoicing process
+        # Load all information about contracts into memory to reduce database querying
+        contracts = Contract.objects.filter(tenancy=self).select_for_update()
         # Loop over all contracts and call their create_invoice() method
-        contracts = Contract.objects.all().prefetch_related(self)
         for contract in contracts:
             contract.create_invoice(self.days_until_invoice_expiration)
         pass
@@ -223,6 +224,7 @@ class Contract(models.Model):
 
     def create_invoice(self, days_until_expiration):
         # Create an Invoice, then loop over all Components and call their create_invoice_line() method
+
         pass
 
     class Meta:
