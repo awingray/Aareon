@@ -1,11 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Home</title>
-</head>
-<body>
+{% extends 'InvoiceEngineApp/header.html' %}
+
+{% block content %}
     <p>I am a home page</p>
     <p>Go to <a href="{% url 'login' %}">login</a></p>
-</body>
-</html>
+{% endblock %}
