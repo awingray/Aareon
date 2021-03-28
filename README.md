@@ -14,10 +14,13 @@ For benchmarking, a file named 'tests.py' is included in the InvoiceEngineApp. T
 - clear_invoices() to remove all invoices from the database so that run_invoice_engine can be used again without having to generate new benchmarking data
 - run_invoice_engine() to measure the speed of the invoicing process
 
-Run these functions in the web container from the manage.py shell: 'docker-compose exec python manage.py shell'
+Run these functions in the web container from the manage.py shell: 
+
+'docker-compose exec python manage.py shell'
+
 In the shell, run the following commands:
-import InvoiceEngineApp.tests as tests
-tests.function_name()
-exit() when you're done
+- import InvoiceEngineApp.tests as tests
+- tests.function_name(arg)
+- exit() when you're done
 
 Do note that if you make changes to tests.py, you have to restart the manage.py shell.

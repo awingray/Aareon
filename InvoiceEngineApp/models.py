@@ -59,7 +59,7 @@ class Tenancy(models.Model):
             new_invoice_lines.extend(invoice_lines)
 
         print("Received all new objects")
-        print("Starting bulk create")
+        print("Starting bulk create at " + datetime.datetime.now().__str__())
         Invoice.objects.bulk_create(new_invoices)
         InvoiceLine.objects.bulk_create(new_invoice_lines)
 

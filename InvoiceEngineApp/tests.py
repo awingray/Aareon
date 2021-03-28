@@ -96,7 +96,7 @@ def generate_benchmark_data(max_components):
             vat_rate = random.choice(vat_rates)
 
             base_amount = random.randint(100, 2000)
-            vat_amount = base_amount*vat_rate.percentage
+            vat_amount = base_amount*vat_rate.percentage/100
             total_amount = base_amount + vat_amount
 
             component = Component(
