@@ -32,16 +32,29 @@ class Tenancy(models.Model):
                 }
 
     def invoice_contracts(self):
+        # Get the highest invoice id from the database
+        next_invoice_id = 0
+        next_invoice_line_id = 0
+
+        if Invoice.objects.exists():
+            next_invoice_id = Invoice.objects.aggregate(models.Max('invoice_id')).get('invoice_id__max') + 1
+            next_invoice_line_id = InvoiceLine.objects.aggregate(models.Max('invoice_line_id')).get('invoice_line_id__max') + 1
+
         # Load all information about contracts into memory to reduce database querying
-        # It would be beneficial to load all components into memory as well.  However, I currently do not see a way
-        # to do this.
         contracts = self.contract_set.select_related('contract_type')
 
         # Loop over all contracts and call their create_invoice() method
         new_invoices = []
         new_invoice_lines = []
         for contract in contracts:
-            invoice, invoice_lines = contract.create_invoice(self.days_until_invoice_expiration)
+            invoice, invoice_lines, next_invoice_line_id = contract.create_invoice(
+                self.days_until_invoice_expiration,
+                next_invoice_id,
+                next_invoice_line_id
+            )
+
+            next_invoice_id += 1
+
             new_invoices.append(invoice)
             new_invoice_lines.extend(invoice_lines)
 
@@ -233,10 +246,11 @@ class Contract(models.Model):
                 'balance': self.balance
                 }
 
-    def create_invoice(self, days_until_expiration):
+    def create_invoice(self, days_until_expiration, invoice_id, invoice_line_id):
         """Create an Invoice, then loop over all Components and call their create_invoice_line() method."""
         # Date will default to today, no need to set it
         invoice = Invoice(
+            invoice_id=invoice_id,
             contract=self,
             internal_customer_id=5,
             external_customer_id=5,
@@ -249,12 +263,13 @@ class Contract(models.Model):
             invoice_number=0,
             general_ledger_account=0
         )
-        components = self.component_set.select_related()
+        components = self.component_set.select_related('vat_rate', 'base_component')
         invoice_lines = []
         for component in components:
-            invoice_lines.append(component.create_invoice_line(invoice))
+            invoice_lines.append(component.create_invoice_line(invoice, invoice_line_id))
+            invoice_line_id += 1
 
-        return invoice, invoice_lines
+        return invoice, invoice_lines, invoice_line_id
 
     class Meta:
         constraints = [
@@ -302,8 +317,9 @@ class Component(models.Model):
     def __str__(self):
         return "Component: " + self.description
 
-    def create_invoice_line(self, invoice):
+    def create_invoice_line(self, invoice, invoice_line_id):
         return InvoiceLine(
+            invoice_line_id=invoice_line_id,
             component=self,
             invoice=invoice,
             description=self.description,

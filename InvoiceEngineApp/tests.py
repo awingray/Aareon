@@ -11,7 +11,7 @@ from InvoiceEngineApp.models import (
 )
 
 
-def generate_benchmark_data():
+def generate_benchmark_data(max_components):
     # We need:
     # 1 tenancy
     # 4 VAT rates
@@ -71,11 +71,11 @@ def generate_benchmark_data():
 
     contracts = []
     components = []
+    total_components = 0
     for i in range(100000):
         if i % 1000 == 0:
             print("contract " + i.__str__())
-        # amount_of_components = random.randint(1, max_components)
-        amount_of_components = 1
+        amount_of_components = random.randint(1, max_components)
         contract = Contract(
             contract_id=i,
             tenancy=tenancy,
@@ -100,7 +100,7 @@ def generate_benchmark_data():
             total_amount = base_amount + vat_amount
 
             component = Component(
-                component_id=i,  # This does not! work if amount_of_components != 1
+                component_id=total_components,
                 contract=contract,
                 base_component=random.choice(base_components),
                 vat_rate=vat_rate,
@@ -121,8 +121,11 @@ def generate_benchmark_data():
             contract.vat_amount += vat_amount
             contract.total_amount += total_amount
             contract.balance += total_amount
-            contracts.append(contract)
+
             components.append(component)
+            total_components += 1
+
+        contracts.append(contract)
 
     print("start adding contracts & components to db")
     Contract.objects.bulk_create(contracts)
