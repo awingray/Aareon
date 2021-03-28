@@ -3,7 +3,6 @@ from django.db import models as models
 from django.db.models import CheckConstraint, Q, F
 from django.shortcuts import get_object_or_404
 
-
 class Tenancy(models.Model):
     """The tenancy defines the organization using the model.  All other classes will have an (indirect) reference to the
     tenancy, in order to keep track of who is allowed to access the data.

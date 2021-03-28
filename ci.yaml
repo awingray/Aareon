@@ -6,13 +6,13 @@ on:
   # opening a pull request to master and develop branch will be a trigger
   pull_request:
     branches:
-      - develop
+      - development
       - master
   # any code pushed to master and develop branch will also be a trigger
   push:
     branches:
       - master
-      - develop
+      - development
 
 
 # three job definition
