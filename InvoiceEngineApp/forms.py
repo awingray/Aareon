@@ -42,6 +42,13 @@ class VATRateForm(forms.ModelForm):
     def set_tenancy(self, company_id):
         self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
 
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+        if end_date < start_date:
+            raise forms.ValidationError("End date should be greater than start date.")
+
 
 class ContractForm(forms.ModelForm):
     """A form for the user to set the fields of a contract.  Tenancy is added automatically.
