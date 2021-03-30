@@ -1,12 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'InvoiceEngineApp/base.html' %}
 
-<body>
-    <h2>Log In</h2>
+{% block content %}
+
+    <p style="text-align: center;margin: auto;"><h2>Log In</h2>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Log In</button>
-    </form>
-</body>
-</html>
+          <button class="btn btn-primary" type="submit" name="action">Login
+  </button>
+    </form></p>
+
+{% endblock %}
