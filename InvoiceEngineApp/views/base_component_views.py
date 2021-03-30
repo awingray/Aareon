@@ -53,7 +53,11 @@ class BaseComponentCreateView(CreateView):
         return reverse('base_component_list', args=[self.kwargs.get('company_id')])
 
     def get(self, *args, **kwargs):
-        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
+        get_object_or_404(
+            Tenancy,
+            company_id=self.kwargs.get('company_id'),
+            tenancy_id=self.request.user.username
+        )
         return super().get(*args, **kwargs)
 
 
@@ -69,7 +73,11 @@ class BaseComponentDetailView(DetailView):
 
     def get_object(self, queryset=BaseComponent.objects.all()):
         base_component_id = self.kwargs.get('base_component_id')
-        base_component = get_object_or_404(BaseComponent, tenancy__tenancy_id=self.request.user.username, base_component_id=base_component_id)
+        base_component = get_object_or_404(
+            BaseComponent,
+            tenancy__tenancy_id=self.request.user.username,
+            base_component_id=base_component_id
+        )
         return base_component
 
 
@@ -81,7 +89,11 @@ class BaseComponentUpdateView(UpdateView):
 
     def get_object(self, queryset=BaseComponent.objects.all()):
         base_component_id = self.kwargs.get('base_component_id')
-        base_component = get_object_or_404(BaseComponent, tenancy__tenancy_id=self.request.user.username, base_component_id=base_component_id)
+        base_component = get_object_or_404(
+            BaseComponent,
+            tenancy__tenancy_id=self.request.user.username,
+            base_component_id=base_component_id
+        )
         return base_component
 
     def get_success_url(self):
@@ -100,7 +112,11 @@ class BaseComponentDeleteView(DeleteView):
 
     def get_object(self, queryset=BaseComponent.objects.all()):
         base_component_id = self.kwargs.get('base_component_id')
-        base_component = get_object_or_404(BaseComponent, tenancy__tenancy_id=self.request.user.username, base_component_id=base_component_id)
+        base_component = get_object_or_404(
+            BaseComponent,
+            tenancy__tenancy_id=self.request.user.username,
+            base_component_id=base_component_id
+        )
         return base_component
 
     def get_success_url(self):

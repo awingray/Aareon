@@ -68,7 +68,7 @@ class VATRateDetailView(DetailView):
         return context
 
     def get_object(self, queryset=VATRate.objects.all()):
-        vat_rate_id = self.kwargs.get('contract_type_id')
+        vat_rate_id = self.kwargs.get('vat_rate_id')
         vat_rate = get_object_or_404(VATRate, tenancy__tenancy_id=self.request.user.username, vat_rate_id=vat_rate_id)
         return vat_rate
 
@@ -80,7 +80,7 @@ class VATRateUpdateView(UpdateView):
     extra_context = {'object_type': "VAT rate"}
 
     def get_object(self, queryset=VATRate.objects.all()):
-        vat_rate_id = self.kwargs.get('contract_type_id')
+        vat_rate_id = self.kwargs.get('vat_rate_id')
         vat_rate = get_object_or_404(VATRate, tenancy__tenancy_id=self.request.user.username, vat_rate_id=vat_rate_id)
         return vat_rate
 
@@ -99,7 +99,7 @@ class VATRateDeleteView(DeleteView):
         return context
 
     def get_object(self, queryset=VATRate.objects.all()):
-        vat_rate_id = self.kwargs.get('contract_type_id')
+        vat_rate_id = self.kwargs.get('vat_rate_id')
         vat_rate = get_object_or_404(VATRate, tenancy__tenancy_id=self.request.user.username, vat_rate_id=vat_rate_id)
         return vat_rate
 

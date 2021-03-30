@@ -3,6 +3,7 @@ from django.db import models
 from django.db.models import CheckConstraint, Q, F
 from django.shortcuts import get_object_or_404
 
+
 class Tenancy(models.Model):
     """The tenancy defines the organization using the model.  All other classes will have an (indirect) reference to the
     tenancy, in order to keep track of who is allowed to access the data.
@@ -37,7 +38,8 @@ class Tenancy(models.Model):
 
         if Invoice.objects.exists():
             next_invoice_id = Invoice.objects.aggregate(models.Max('invoice_id')).get('invoice_id__max') + 1
-            next_invoice_line_id = InvoiceLine.objects.aggregate(models.Max('invoice_line_id')).get('invoice_line_id__max') + 1
+            next_invoice_line_id = \
+                InvoiceLine.objects.aggregate(models.Max('invoice_line_id')).get('invoice_line_id__max') + 1
 
         # Load all information about contracts into memory to reduce database querying
         contracts = self.contract_set.select_related('contract_type')
@@ -277,16 +279,16 @@ class Contract(models.Model):
                 # If we have a set invoicing period, then start day must be specified, and amount of days must not.
                 name='check_period',
                 check=Q(invoicing_period='V')
-                      & Q(invoicing_amount_of_days__isnull=False)
-                      & Q(invoicing_start_day__isnull=True)
+                & Q(invoicing_amount_of_days__isnull=False)
+                & Q(invoicing_start_day__isnull=True)
 
-                      | (Q(invoicing_period='M')
-                         | Q(invoicing_period='Q')
-                         | Q(invoicing_period='H')
-                         | Q(invoicing_period='Y')
-                         )
-                      & Q(invoicing_amount_of_days__isnull=True)
-                      & Q(invoicing_start_day__isnull=False)
+                | (Q(invoicing_period='M')
+                    | Q(invoicing_period='Q')
+                    | Q(invoicing_period='H')
+                    | Q(invoicing_period='Y')
+                   )
+                & Q(invoicing_amount_of_days__isnull=True)
+                & Q(invoicing_start_day__isnull=False)
             ),
             CheckConstraint(
                 name='contract_start_before_end',

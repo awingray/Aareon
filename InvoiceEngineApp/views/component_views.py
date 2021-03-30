@@ -59,7 +59,11 @@ class ComponentUpdateView(UpdateView):
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
-        component = get_object_or_404(Component, contract__tenancy__tenancy_id=self.request.user.username, component_id=component_id)
+        component = get_object_or_404(
+            Component,
+            contract__tenancy__tenancy_id=self.request.user.username,
+            component_id=component_id
+        )
 
         component.contract.base_amount -= component.base_amount
         component.contract.total_amount -= component.total_amount
@@ -88,7 +92,11 @@ class ComponentDeleteView(DeleteView):
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
-        component = get_object_or_404(Component, contract__tenancy__tenancy_id=self.request.user.username, component_id=component_id)
+        component = get_object_or_404(
+            Component,
+            contract__tenancy__tenancy_id=self.request.user.username,
+            component_id=component_id
+        )
         return component
 
     def delete(self, request, *args, **kwargs):

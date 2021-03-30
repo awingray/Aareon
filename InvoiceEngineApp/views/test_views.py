@@ -1,9 +1,9 @@
-from django.shortcuts import get_object_or_404, render
-from django.views.generic import View, ListView, DetailView
+from django.shortcuts import get_object_or_404
+from django.views.generic import ListView
 from InvoiceEngineApp.models import Tenancy
 
 
-class TenancyMixinView(View):
+class TenancyMixinView(ListView):
     """This class defines common methods of Views used in this project."""
 
     def get_tenancy(self):
@@ -28,6 +28,6 @@ class TenancyMixinView(View):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['object_list'] =  self.get_queryset()
+        context['object_list'] = self.get_queryset()
         context['company_id'] = self.kwargs.get('company_id')
         return context

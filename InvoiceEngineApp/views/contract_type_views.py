@@ -69,7 +69,11 @@ class ContractTypeDetailView(DetailView):
 
     def get_object(self, queryset=ContractType.objects.all()):
         contract_type_id = self.kwargs.get('contract_type_id')
-        contract_type = get_object_or_404(ContractType, tenancy__tenancy_id=self.request.user.username, contract_type_id=contract_type_id)
+        contract_type = get_object_or_404(
+            ContractType,
+            tenancy__tenancy_id=self.request.user.username,
+            contract_type_id=contract_type_id
+        )
         return contract_type
 
 
@@ -81,7 +85,11 @@ class ContractTypeUpdateView(UpdateView):
 
     def get_object(self, queryset=ContractType.objects.all()):
         contract_type_id = self.kwargs.get('contract_type_id')
-        contract_type = get_object_or_404(ContractType, tenancy__tenancy_id=self.request.user.username, contract_type_id=contract_type_id)
+        contract_type = get_object_or_404(
+            ContractType,
+            tenancy__tenancy_id=self.request.user.username,
+            contract_type_id=contract_type_id
+        )
         return contract_type
 
     def get_success_url(self):
@@ -100,7 +108,10 @@ class ContractTypeDeleteView(DeleteView):
 
     def get_object(self, queryset=ContractType.objects.all()):
         contract_type_id = self.kwargs.get('contract_type_id')
-        contract_type = get_object_or_404(ContractType, tenancy__tenancy_id=self.request.user.username, contract_type_id=contract_type_id)
+        contract_type = get_object_or_404(
+            ContractType, tenancy__tenancy_id=self.request.user.username,
+            contract_type_id=contract_type_id
+        )
         return contract_type
 
     def get_success_url(self):

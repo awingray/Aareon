@@ -4,7 +4,6 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404, render
 from django.utils.decorators import method_decorator
 from django.views.generic import (
-    View,
     CreateView,
     DetailView,
     ListView,

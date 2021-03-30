@@ -37,4 +37,8 @@ class InvoiceDetailView(DetailView):
 
     def get_object(self, queryset=Invoice.objects.all()):
         invoice_id = self.kwargs.get('invoice_id')
-        return get_object_or_404(Invoice, contract__tenancy__tenancy_id=self.request.user.username, invoice_id=invoice_id)
+        return get_object_or_404(
+            Invoice,
+            contract__tenancy__tenancy_id=self.request.user.username,
+            invoice_id=invoice_id
+        )
