@@ -56,8 +56,8 @@ class TenancyDetailView(DetailView):
     extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        id_ = self.kwargs.get('company_id')
-        return get_object_or_404(Tenancy, company_id=id_)
+        company_id = self.kwargs.get('company_id')
+        return get_object_or_404(Tenancy, company_id=company_id)
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -71,8 +71,8 @@ class TenancyUpdateView(UpdateView):
     extra_context = {'object_type': "tenancy"}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        id_ = self.kwargs.get('company_id')
-        return get_object_or_404(Tenancy, company_id=id_)
+        company_id = self.kwargs.get('company_id')
+        return get_object_or_404(Tenancy, company_id=company_id)
 
     def get_success_url(self):
         return reverse('tenancy_list')
@@ -88,8 +88,8 @@ class TenancyDeleteView(DeleteView):
     extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        id_ = self.kwargs.get('company_id')
-        return get_object_or_404(Tenancy, company_id=id_)
+        company_id = self.kwargs.get('company_id')
+        return get_object_or_404(Tenancy, company_id=company_id)
 
     def get_success_url(self):
         return reverse('tenancy_list')

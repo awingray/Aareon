@@ -19,8 +19,8 @@ class ContractListView(ListView):
     template_name = 'InvoiceEngineApp/contract_list.html'
 
     def get_queryset(self):
-        id_ = self.kwargs.get('company_id')
-        return Contract.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=id_))
+        company_id = self.kwargs.get('company_id')
+        return Contract.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=company_id))
 
     def get(self, request, *args, **kwargs):
         context = {'contract_list': self.get_queryset(),
@@ -74,8 +74,8 @@ class ContractDetailView(DetailView):
         return context
 
     def get_object(self, queryset=Contract.objects.all()):
-        id_ = self.kwargs.get('contract_id')
-        return get_object_or_404(Contract, contract_id=id_)
+        contract_id = self.kwargs.get('contract_id')
+        return get_object_or_404(Contract, contract_id=contract_id)
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -91,8 +91,8 @@ class ContractUpdateView(UpdateView):
         return kwargs
 
     def get_object(self, queryset=Contract.objects.all()):
-        id_ = self.kwargs.get('contract_id')
-        return get_object_or_404(Contract, contract_id=id_)
+        contract_id = self.kwargs.get('contract_id')
+        return get_object_or_404(Contract, contract_id=contract_id)
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])

@@ -18,10 +18,9 @@ class BaseComponentListView(ListView):
     template_name = 'InvoiceEngineApp/base_component_list.html'
 
     def get_queryset(self):
-        id_ = self.kwargs.get('company_id')
-        return BaseComponent.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=id_))
+        company_id = self.kwargs.get('company_id')
+        return BaseComponent.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=company_id))
 
-    # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):
         context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
         return render(request, self.template_name, context)
@@ -70,8 +69,8 @@ class BaseComponentUpdateView(UpdateView):
     extra_context = {'object_type': "base component"}
 
     def get_object(self, queryset=BaseComponent.objects.all()):
-        id_ = self.kwargs.get('base_component_id')
-        return get_object_or_404(BaseComponent, base_component_id=id_)
+        base_component_id = self.kwargs.get('base_component_id')
+        return get_object_or_404(BaseComponent, base_component_id=base_component_id)
 
     def get_success_url(self):
         return reverse('base_component_list', args=[self.kwargs.get('company_id')])
