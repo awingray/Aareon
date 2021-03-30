@@ -13,27 +13,20 @@ from InvoiceEngineApp.models import VATRate, Tenancy
 from InvoiceEngineApp.forms import VATRateForm
 
 
-class VATRateMixinView:
-
-    def get_tenancy(self):
-
-        tenancy = get_object_or_404(
-            Tenancy.objects.filter(
-                company_id=self.kwargs.get('company_id'),
-                tenancy_id=self.request.user.username
-            )
-        )
-        return tenancy
-
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class VATRateListView(VATRateMixinView, ListView):
+class VATRateListView(ListView):
     template_name = 'InvoiceEngineApp/vat_rate_list.html'
 
     def get_queryset(self):
-        id_ = self.kwargs.get('company_id')
-        return VATRate.objects.filter(tenancy=VATRateMixinView.get_tenancy(self))
+        company_id = self.kwargs.get('company_id')
+        return VATRate.objects.filter(
+            tenancy=get_object_or_404(
+                Tenancy,
+                tenancy_id=self.request.user.username,
+                company_id=company_id
+            )
+        )
 
-    # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):
         context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
         return render(request, self.template_name, context)
@@ -59,6 +52,10 @@ class VATRateCreateView(CreateView):
     def get_success_url(self):
         return reverse('vat_rate_list', args=[self.kwargs.get('company_id')])
 
+    def get(self, *args, **kwargs):
+        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
+        return super().get(*args, **kwargs)
+
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class VATRateDetailView(DetailView):
@@ -71,8 +68,9 @@ class VATRateDetailView(DetailView):
         return context
 
     def get_object(self, queryset=VATRate.objects.all()):
-        id_ = self.kwargs.get('vat_rate_id')
-        return get_object_or_404(VATRate, vat_rate_id=id_)
+        vat_rate_id = self.kwargs.get('contract_type_id')
+        vat_rate = get_object_or_404(VATRate, tenancy__tenancy_id=self.request.user.username, vat_rate_id=vat_rate_id)
+        return vat_rate
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -82,8 +80,9 @@ class VATRateUpdateView(UpdateView):
     extra_context = {'object_type': "VAT rate"}
 
     def get_object(self, queryset=VATRate.objects.all()):
-        id_ = self.kwargs.get('vat_rate_id')
-        return get_object_or_404(VATRate, vat_rate_id=id_)
+        vat_rate_id = self.kwargs.get('contract_type_id')
+        vat_rate = get_object_or_404(VATRate, tenancy__tenancy_id=self.request.user.username, vat_rate_id=vat_rate_id)
+        return vat_rate
 
     def get_success_url(self):
         return reverse('vat_rate_list', args=[self.kwargs.get('company_id')])
@@ -100,8 +99,9 @@ class VATRateDeleteView(DeleteView):
         return context
 
     def get_object(self, queryset=VATRate.objects.all()):
-        id_ = self.kwargs.get('vat_rate_id')
-        return get_object_or_404(VATRate, vat_rate_id=id_)
+        vat_rate_id = self.kwargs.get('contract_type_id')
+        vat_rate = get_object_or_404(VATRate, tenancy__tenancy_id=self.request.user.username, vat_rate_id=vat_rate_id)
+        return vat_rate
 
     def get_success_url(self):
         return reverse('vat_rate_list', args=[self.kwargs.get('company_id')])

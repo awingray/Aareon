@@ -3,7 +3,6 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404, render
 from django.utils.decorators import method_decorator
 from django.views.generic import (
-    View,
     CreateView,
     DetailView,
     ListView,
@@ -14,26 +13,20 @@ from InvoiceEngineApp.models import BaseComponent, Tenancy
 from InvoiceEngineApp.forms import BaseComponentForm
 
 
-class BaseComponentMixinView:
-    def get_tenancy(self):
-        tenancy = get_object_or_404(
-            Tenancy.objects.filter(
-                company_id=self.kwargs.get('company_id'),
-                tenancy_id=self.request.user.username
-            )
-        )
-        return tenancy
-
-
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class BaseComponentListView(BaseComponentMixinView, ListView):
+class BaseComponentListView(ListView):
     template_name = 'InvoiceEngineApp/base_component_list.html'
 
     def get_queryset(self):
-        id_ = self.kwargs.get('company_id')
-        return BaseComponent.objects.filter(tenancy=BaseComponentMixinView.get_tenancy(self))
+        company_id = self.kwargs.get('company_id')
+        return BaseComponent.objects.filter(
+            tenancy=get_object_or_404(
+                Tenancy,
+                tenancy_id=self.request.user.username,
+                company_id=company_id
+            )
+        )
 
-    # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):
         context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
         return render(request, self.template_name, context)
@@ -59,6 +52,10 @@ class BaseComponentCreateView(CreateView):
     def get_success_url(self):
         return reverse('base_component_list', args=[self.kwargs.get('company_id')])
 
+    def get(self, *args, **kwargs):
+        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
+        return super().get(*args, **kwargs)
+
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class BaseComponentDetailView(DetailView):
@@ -71,8 +68,9 @@ class BaseComponentDetailView(DetailView):
         return context
 
     def get_object(self, queryset=BaseComponent.objects.all()):
-        id_ = self.kwargs.get('base_component_id')
-        return get_object_or_404(BaseComponent, base_component_id=id_)
+        base_component_id = self.kwargs.get('base_component_id')
+        base_component = get_object_or_404(BaseComponent, tenancy__tenancy_id=self.request.user.username, base_component_id=base_component_id)
+        return base_component
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -83,7 +81,8 @@ class BaseComponentUpdateView(UpdateView):
 
     def get_object(self, queryset=BaseComponent.objects.all()):
         base_component_id = self.kwargs.get('base_component_id')
-        return get_object_or_404(BaseComponent, base_component_id=base_component_id)
+        base_component = get_object_or_404(BaseComponent, tenancy__tenancy_id=self.request.user.username, base_component_id=base_component_id)
+        return base_component
 
     def get_success_url(self):
         return reverse('base_component_list', args=[self.kwargs.get('company_id')])
@@ -100,8 +99,9 @@ class BaseComponentDeleteView(DeleteView):
         return context
 
     def get_object(self, queryset=BaseComponent.objects.all()):
-        id_ = self.kwargs.get('base_component_id')
-        return get_object_or_404(BaseComponent, base_component_id=id_)
+        base_component_id = self.kwargs.get('base_component_id')
+        base_component = get_object_or_404(BaseComponent, tenancy__tenancy_id=self.request.user.username, base_component_id=base_component_id)
+        return base_component
 
     def get_success_url(self):
         return reverse('base_component_list', args=[self.kwargs.get('company_id')])

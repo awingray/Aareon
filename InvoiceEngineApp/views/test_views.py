@@ -1,14 +1,15 @@
 from django.shortcuts import get_object_or_404, render
 from django.views.generic import View, ListView, DetailView
-
 from InvoiceEngineApp.models import Tenancy
 
 
 class TenancyMixinView(View):
-    """This class defines common methods of ListViews used in this project."""
+    """This class defines common methods of Views used in this project."""
 
     def get_tenancy(self):
-        """Select the proper tenancy, and to check whether this tenancy is accessible to the current user."""
+        """Select the proper tenancy, and to check whether this tenancy is accessible to the current user.
+        Do not tell the user if they do not have permission, so they do not know whether this tenancy exists or not.
+        """
         tenancy = get_object_or_404(
             Tenancy.objects.filter(
                 company_id=self.kwargs.get('company_id'),

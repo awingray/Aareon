@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import (
-    View,
     CreateView,
     DetailView,
     ListView,
@@ -15,26 +14,18 @@ from InvoiceEngineApp.models import Tenancy
 from InvoiceEngineApp.forms import TenancyForm
 
 
-class TenancyMixinView:
-
-    def get_tenancy(self):
-        tenancy = get_object_or_404(
-            Tenancy.objects.filter(
-                company_id=self.kwargs.get('company_id'),
-                tenancy_id=self.request.user.username
-            )
-        )
-        return tenancy
-
-
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class TenancyListView(TenancyMixinView,ListView):
+class TenancyListView(ListView):
     """Show the user a list of all tenancies available to them."""
     template_name = 'InvoiceEngineApp/tenancy_list.html'
 
     def invoice_contracts(self, company_id):
         # This function is for testing the invoice engine!
-        tenancy = TenancyMixinView.get_tenancy(self)
+        tenancy = get_object_or_404(
+            Tenancy.objects.filter(
+                company_id=company_id,
+            )
+        )
         tenancy.invoice_contracts()
         return HttpResponse("Invoicing started!")
 
@@ -60,7 +51,7 @@ class TenancyCreateView(CreateView):
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class TenancyDetailView(TenancyMixinView, DetailView):
+class TenancyDetailView(DetailView):
     """Show the user the details corresponding to a certain tenancy.
     This class need not check if the user has access to that tenancy, as they can only access this page for their own
     tenancies as shown through TenancyListView.
@@ -69,11 +60,11 @@ class TenancyDetailView(TenancyMixinView, DetailView):
     extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        tenancy = TenancyMixinView.get_tenancy(self)
+        return get_object_or_404(Tenancy.objects.filter(company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username))
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class TenancyUpdateView(TenancyMixinView, UpdateView):
+class TenancyUpdateView(UpdateView):
     """Allow the user to change a certain tenancy.
     This class need not check if the user has access to that tenancy, as they can only access this page for their own
     tenancies as shown through TenancyListView.
@@ -83,14 +74,14 @@ class TenancyUpdateView(TenancyMixinView, UpdateView):
     extra_context = {'object_type': "tenancy"}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        tenancy = TenancyMixinView.get_tenancy(self)
+        return get_object_or_404(Tenancy.objects.filter(company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username))
 
     def get_success_url(self):
         return reverse('tenancy_list')
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class TenancyDeleteView(TenancyMixinView, DeleteView):
+class TenancyDeleteView(DeleteView):
     """Allow the user to delete a certain tenancy.
     This class need not check if the user has access to that tenancy, as they can only access this page for their own
     tenancies as shown through TenancyListView.
@@ -99,7 +90,7 @@ class TenancyDeleteView(TenancyMixinView, DeleteView):
     extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        tenancy = TenancyMixinView.get_tenancy(self)
+        return get_object_or_404(Tenancy.objects.filter(company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username))
 
     def get_success_url(self):
         return reverse('tenancy_list')

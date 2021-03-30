@@ -12,26 +12,20 @@ from django.views.generic import (
 from InvoiceEngineApp.models import ContractType, Tenancy
 from InvoiceEngineApp.forms import ContractTypeForm
 
-class ContractTypeMixinView:
-
-    def get_tenancy(self):
-
-        tenancy = get_object_or_404(
-            Tenancy.objects.filter(
-                company_id=self.kwargs.get('company_id'),
-                tenancy_id=self.request.user.username
-            )
-        )
-        return tenancy
-
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractTypeListView(ContractTypeMixinView, ListView):
+class ContractTypeListView(ListView):
     template_name = 'InvoiceEngineApp/contract_type_list.html'
 
     def get_queryset(self):
         company_id = self.kwargs.get('company_id')
-        return ContractType.objects.filter(tenancy=ContractTypeMixinView.get_tenancy(self))
+        return ContractType.objects.filter(
+            tenancy=get_object_or_404(
+                Tenancy,
+                tenancy_id=self.request.user.username,
+                company_id=company_id
+            )
+        )
 
     def get(self, request, *args, **kwargs):
         context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
@@ -58,6 +52,10 @@ class ContractTypeCreateView(CreateView):
     def get_success_url(self):
         return reverse('contract_type_list', args=[self.kwargs.get('company_id')])
 
+    def get(self, *args, **kwargs):
+        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
+        return super().get(*args, **kwargs)
+
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class ContractTypeDetailView(DetailView):
@@ -70,8 +68,9 @@ class ContractTypeDetailView(DetailView):
         return context
 
     def get_object(self, queryset=ContractType.objects.all()):
-        id_ = self.kwargs.get('contract_type_id')
-        return get_object_or_404(ContractType, contract_type_id=id_)
+        contract_type_id = self.kwargs.get('contract_type_id')
+        contract_type = get_object_or_404(ContractType, tenancy__tenancy_id=self.request.user.username, contract_type_id=contract_type_id)
+        return contract_type
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -81,8 +80,9 @@ class ContractTypeUpdateView(UpdateView):
     extra_context = {'object_type': "contract type"}
 
     def get_object(self, queryset=ContractType.objects.all()):
-        id_ = self.kwargs.get('contract_type_id')
-        return get_object_or_404(ContractType, contract_type_id=id_)
+        contract_type_id = self.kwargs.get('contract_type_id')
+        contract_type = get_object_or_404(ContractType, tenancy__tenancy_id=self.request.user.username, contract_type_id=contract_type_id)
+        return contract_type
 
     def get_success_url(self):
         return reverse('contract_type_list', args=[self.kwargs.get('company_id')])
@@ -99,8 +99,9 @@ class ContractTypeDeleteView(DeleteView):
         return context
 
     def get_object(self, queryset=ContractType.objects.all()):
-        id_ = self.kwargs.get('contract_type_id')
-        return get_object_or_404(ContractType, contract_type_id=id_)
+        contract_type_id = self.kwargs.get('contract_type_id')
+        contract_type = get_object_or_404(ContractType, tenancy__tenancy_id=self.request.user.username, contract_type_id=contract_type_id)
+        return contract_type
 
     def get_success_url(self):
         return reverse('contract_type_list', args=[self.kwargs.get('company_id')])

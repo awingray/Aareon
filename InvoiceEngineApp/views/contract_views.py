@@ -15,24 +15,19 @@ from InvoiceEngineApp.models import Contract, Tenancy
 from InvoiceEngineApp.forms import ContractForm
 
 
-class ContractMixinView:
-    def get_tenancy(self):
-        tenancy = get_object_or_404(
-            Tenancy.objects.filter(
-                company_id=self.kwargs.get('company_id'),
-                tenancy_id=self.request.user.username
-            )
-        )
-        return tenancy
-
-
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractListView(ContractMixinView, ListView):
+class ContractListView(ListView):
     template_name = 'InvoiceEngineApp/contract_list.html'
 
     def get_queryset(self):
-        id_ = self.kwargs.get('company_id')
-        return Contract.objects.filter(tenancy=ContractMixinView.get_tenancy(self))
+        company_id = self.kwargs.get('company_id')
+        return Contract.objects.filter(
+            tenancy=get_object_or_404(
+                Tenancy,
+                tenancy_id=self.request.user.username,
+                company_id=company_id
+            )
+        )
 
     def get(self, request, *args, **kwargs):
         context = {'contract_list': self.get_queryset(),
@@ -62,17 +57,14 @@ class ContractCreateView(CreateView):
         # Add the reference to the proper tenancy to the contract.
         company_id = self.kwargs.get('company_id')
         form.set_tenancy(company_id)
-
         return super().form_valid(form)
-
-        # Do error handling!
-        # try:
-        #     return super().form_valid(form)
-        # except IntegrityError as ie:
-        #     return redirect(reverse('contract_create', args=[self.kwargs.get('company_id')]))
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
+
+    def get(self, *args, **kwargs):
+        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
+        return super().get(*args, **kwargs)
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -87,7 +79,8 @@ class ContractDetailView(DetailView):
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
-        return get_object_or_404(Contract, contract_id=contract_id)
+        contract = get_object_or_404(Contract, tenancy__tenancy_id=self.request.user.username, contract_id=contract_id)
+        return contract
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -104,7 +97,8 @@ class ContractUpdateView(UpdateView):
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
-        return get_object_or_404(Contract, contract_id=contract_id)
+        contract = get_object_or_404(Contract, tenancy__tenancy_id=self.request.user.username, contract_id=contract_id)
+        return contract
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
@@ -122,7 +116,8 @@ class ContractDeleteView(DeleteView):
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
-        return get_object_or_404(Contract, contract_id=contract_id)
+        contract = get_object_or_404(Contract, tenancy__tenancy_id=self.request.user.username, contract_id=contract_id)
+        return contract
 
     def delete(self, request, *args, **kwargs):
         contract = self.get_object()
