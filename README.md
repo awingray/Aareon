@@ -1,6 +1,6 @@
-This is a django-based web-application run in a docker environment. The application uses postgreSQL as a database system.
+### This is a django-based web-application run in a docker environment. The application uses postgreSQL as a database system.
 
-To run application:
+#### To run application:
  - navigate to the folder containing the dockerfile and run 'docker-compose build'
  - run 'docker-compose up' to start the containers
  - when running, use 'docker-compose exec web python manage.py makemigrations' to register changes in models.py
@@ -8,6 +8,7 @@ To run application:
  - if none exist, use 'docker-compose exec web manage.py createsuperuser' to register an admin that can use the localhost:8000/admin site
  - you can then use the admin site to add other users -- note that a username must be a positive integer, as it doubles as the tenancy_id in the Tenancy table
 
+#### Benchmarking
 For benchmarking, a file named 'benchmark.py' is included in the root folder. This file contains the following functions:
 - generate_benchmark_data(max_components) to fill the database with 100000 contracts.
 - clear_database() to remove everything(!) from the database in a quick manner
@@ -24,3 +25,6 @@ In the shell, run the following commands:
 - exit() when you're done
 
 Do note that if you make changes to benchmark.py, you have to restart the manage.py shell.
+
+#### Testing
+Use "python manage.py test" to run tests.
