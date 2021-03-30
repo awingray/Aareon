@@ -5,13 +5,25 @@ from django.views.generic import ListView, DetailView
 from InvoiceEngineApp.models import Invoice, Tenancy
 
 
+class InvoiceMixinView:
+
+    def get_tenancy(self):
+
+        tenancy = get_object_or_404(
+            Tenancy.objects.filter(
+                company_id=self.kwargs.get('company_id'),
+                tenancy_id=self.request.user.username
+            )
+        )
+        return tenancy
+
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class InvoiceListView(ListView):
+class InvoiceListView(InvoiceMixinView,ListView):
     template_name = 'InvoiceEngineApp/invoice_list.html'
 
     def get_queryset(self):
         company_id = self.kwargs.get('company_id')
-        return Invoice.objects.filter(contract__tenancy=get_object_or_404(Tenancy, company_id=company_id))
+        return Invoice.objects.filter(contract__tenancy=InvoiceMixinView.get_tenancy(self))
 
     def get(self, request, *args, **kwargs):
         context = {'invoice_list': self.get_queryset(),

@@ -13,13 +13,25 @@ from InvoiceEngineApp.models import VATRate, Tenancy
 from InvoiceEngineApp.forms import VATRateForm
 
 
+class VATRateMixinView:
+
+    def get_tenancy(self):
+
+        tenancy = get_object_or_404(
+            Tenancy.objects.filter(
+                company_id=self.kwargs.get('company_id'),
+                tenancy_id=self.request.user.username
+            )
+        )
+        return tenancy
+
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class VATRateListView(ListView):
+class VATRateListView(VATRateMixinView, ListView):
     template_name = 'InvoiceEngineApp/vat_rate_list.html'
 
     def get_queryset(self):
         id_ = self.kwargs.get('company_id')
-        return VATRate.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=id_))
+        return VATRate.objects.filter(tenancy=VATRateMixinView.get_tenancy(self))
 
     # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):

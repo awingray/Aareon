@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404, render
 from django.utils.decorators import method_decorator
 from django.views.generic import (
+    View,
     CreateView,
     DetailView,
     ListView,
@@ -14,13 +15,24 @@ from InvoiceEngineApp.models import Contract, Tenancy
 from InvoiceEngineApp.forms import ContractForm
 
 
+class ContractMixinView:
+    def get_tenancy(self):
+        tenancy = get_object_or_404(
+            Tenancy.objects.filter(
+                company_id=self.kwargs.get('company_id'),
+                tenancy_id=self.request.user.username
+            )
+        )
+        return tenancy
+
+
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractListView(ListView):
+class ContractListView(ContractMixinView, ListView):
     template_name = 'InvoiceEngineApp/contract_list.html'
 
     def get_queryset(self):
-        company_id = self.kwargs.get('company_id')
-        return Contract.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=company_id))
+        id_ = self.kwargs.get('company_id')
+        return Contract.objects.filter(tenancy=ContractMixinView.get_tenancy(self))
 
     def get(self, request, *args, **kwargs):
         context = {'contract_list': self.get_queryset(),
