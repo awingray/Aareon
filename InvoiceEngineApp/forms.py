@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from InvoiceEngineApp import models
 
 
-class TenancyFrom(forms.ModelForm):
+class TenancyForm(forms.ModelForm):
     """A form for the user to set the name and the date for the next prolonging for a tenancy.
     All other fields are derived and should not be changed by users.
     """

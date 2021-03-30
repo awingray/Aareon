@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404, render
 from django.utils.decorators import method_decorator
 from django.views.generic import (
+    View,
     CreateView,
     DetailView,
     ListView,
@@ -12,14 +13,25 @@ from django.views.generic import (
 from InvoiceEngineApp.models import BaseComponent, Tenancy
 from InvoiceEngineApp.forms import BaseComponentForm
 
+class BaseComponentMixinView:
+
+    def get_tenancy(self):
+
+        tenancy = get_object_or_404(
+            Tenancy.objects.filter(
+                company_id=self.kwargs.get('company_id'),
+                tenancy_id=self.request.user.username
+            )
+        )
+        return tenancy
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class BaseComponentListView(ListView):
+class BaseComponentListView(BaseComponentMixinView,ListView):
     template_name = 'InvoiceEngineApp/base_component_list.html'
 
     def get_queryset(self):
         id_ = self.kwargs.get('company_id')
-        return BaseComponent.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=id_))
+        return BaseComponent.objects.filter(tenancy=BaseComponentMixinView.get_tenancy(self))
 
     # Maybe this guy is not necessary?
     def get(self, request, *args, **kwargs):
