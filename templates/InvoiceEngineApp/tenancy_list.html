@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tenancy list</title>
+</head>
+<body>
+    <!-- Display objects -->
+    {% for object in object_list %}
+        <p>name: {{ object.name }}</p>
+        <!-- Give the user options to view, update, and delete the tenancy -->
+        <p><a href="{% url 'tenancy_details' object.company_id %}">Details</a></p>
+        <p><a href="{% url 'tenancy_update' object.company_id %}">Update</a></p>
+        <p><a href="{% url 'tenancy_delete' object.company_id %}">Delete</a></p>
+
+        <p>
+            <a href="{% url 'contract_type_list' object.company_id %}">View contract types</a> <br>
+            <a href="{% url 'base_component_list' object.company_id %}">View base components</a> <br>
+            <a href="{% url 'vat_rate_list' object.company_id %}">View VAT rates</a> <br>
+            <a href="{% url 'contract_list' object.company_id %}">View contracts</a> <br>
+            <a href="{% url 'invoice_list' object.company_id %}">View invoices</a> <br>
+
+{#            This is for testing the invoice engine#}
+            <a target="_blank" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
+
+        </p>
+
+        <hr/>
+    <!-- If object_list is empty  -->
+    {% empty %}
+        <p>No objects yet</p>
+    {% endfor %}
+    <p><a href="{% url 'tenancy_create' %}">Create new tenancy</a></p>
+    <p><a href="{% url 'profile' %}">Back To Profile page</a></p>
+
+</body>
+</html>

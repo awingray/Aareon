@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete {{ object_type }}</title>
+</head>
+<body>
+    <form method="post">
+
+        {% csrf_token %}
+
+        <p>Are you sure you want to delete "{{ object }}"?</p>
+
+        <!-- Some pages require a link back to the proper company_id. -->
+        {% if list_page|length == 1 %}
+            <p><a href="{% url list_page.0 %}">Return to list</a></p>
+        {% else %}
+            <p><a href="{% url list_page.0 list_page.1 %}">Return to list</a></p>
+        {% endif %}
+
+        <input type="submit" value="Confirm">
+    </form>
+</body>
+</html>

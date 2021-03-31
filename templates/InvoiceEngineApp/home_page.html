@@ -1,11 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Home</title>
-</head>
-<body>
-    <p>I am a home page</p>
-    <p>Go to <a href="{% url 'login' %}">login</a></p>
-</body>
-</html>
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
+ <p style="text-align: center;margin: auto;">Welcome, log in with your USER ID below:&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</p>
+<p style="text-align: center;"><a href="{% url 'login' %}"><button class="btn btn-primary">Login</button></a></p>
+
+{% endblock %}

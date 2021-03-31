@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View {{ object_type }} {{ object }}</title>
+</head>
+<body>
+    <!-- Loop over the dict returned by get_details and print all the values -->
+    {% for key, value in object.get_details.items %}
+        <p>{{ key }}: {{ value }}</p>
+    {% endfor %}
+
+    <!-- Some pages require a link back to the proper company_id. -->
+        {% if list_page|length == 1 %}
+            <p><a href="{% url list_page.0 %}">Return to list</a></p>
+        {% else %}
+            <p><a href="{% url list_page.0 list_page.1 %}">Return to list</a></p>
+        {% endif %}
+</body>
+</html>

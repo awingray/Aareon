@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Base component list</title>
+</head>
+<body>
+    <!-- Display objects -->
+    {% for object in object_list %}
+        <p>description: {{ object.description }}</p>
+        <!-- Give the user options to view, update, and delete the contract type -->
+        <p><a href="{% url 'base_component_details' company_id object.base_component_id %}">Details</a></p>
+        <p><a href="{% url 'base_component_update' company_id object.base_component_id %}">Update</a></p>
+        <p><a href="{% url 'base_component_delete' company_id object.base_component_id %}">Delete</a></p>
+
+        <hr/>
+    <!-- If object_list is empty  -->
+    {% empty %}
+        <p>No objects yet</p>
+    {% endfor %}
+    <p><a href="{% url 'base_component_create' company_id %}">Create new base component</a></p>
+    <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
+
+</body>
+</html>
