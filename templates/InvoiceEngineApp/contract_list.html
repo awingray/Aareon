@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Contract list</title>
-</head>
-<body>
+
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
     <!-- Display objects -->
     {% for contract in contract_list %}
         <p>description: {{ contract.description }}</p>
@@ -53,5 +50,4 @@
     <p><a href="{% url 'contract_create' company_id %}">Create new contract</a></p>
     <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
 
-</body>
-</html>
+{% endblock %}

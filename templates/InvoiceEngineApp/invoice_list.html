@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Invoice list</title>
-</head>
-<body>
+
+
+{% extends 'InvoiceEngineApp/base.html' %}
+
+
+{% block content %}
     <!-- Display objects -->
     {% for invoice in invoice_list %}
         <p>description: {{ invoice.description }}</p>
@@ -26,6 +25,4 @@
         <p>No objects yet</p>
     {% endfor %}
     <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
-
-</body>
-</html>
+{% endblock %}

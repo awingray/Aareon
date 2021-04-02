@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>View {{ object_type }} {{ object }}</title>
-</head>
-<body>
+
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
     <!-- Loop over the dict returned by get_details and print all the values -->
     {% for key, value in object.get_details.items %}
         <p>{{ key }}: {{ value }}</p>
@@ -16,5 +13,5 @@
         {% else %}
             <p><a href="{% url list_page.0 list_page.1 %}">Return to list</a></p>
         {% endif %}
-</body>
-</html>
+
+{% endblock %}

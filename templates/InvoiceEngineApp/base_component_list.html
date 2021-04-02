@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Base component list</title>
-</head>
-<body>
+
+
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
     <!-- Display objects -->
     {% for object in object_list %}
         <p>description: {{ object.description }}</p>
@@ -20,6 +18,4 @@
     {% endfor %}
     <p><a href="{% url 'base_component_create' company_id %}">Create new base component</a></p>
     <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
-
-</body>
-</html>
+{% endblock %}
