@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice list</title>
+</head>
+<body>
+    <!-- Display objects -->
+    {% for invoice in invoice_list %}
+        <p>description: {{ invoice.description }}</p>
+        <!-- Give the user options to view, update, and delete the contract type -->
+        <p><a href="{% url 'invoice_details' company_id invoice.invoice_id %}">Details</a></p>
+
+        ----<br>
+
+        {% for invoice_line in invoice.get_invoice_lines %}
+            <p>
+                invoice line: {{ invoice_line.description }}
+            </p>
+        {% empty %}
+            No invoice lines
+        {% endfor %}
+        <hr/>
+    <!-- If object_list is empty  -->
+    {% empty %}
+        <p>No objects yet</p>
+    {% endfor %}
+    <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
+
+</body>
+</html>

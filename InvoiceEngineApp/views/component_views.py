@@ -8,7 +8,7 @@ from django.views.generic import (
     UpdateView,
     DeleteView
 )
-from InvoiceEngineApp.models import Component
+from InvoiceEngineApp.models import Component, Tenancy
 from InvoiceEngineApp.forms import ComponentForm
 
 
@@ -40,6 +40,10 @@ class ComponentCreateView(CreateView):
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
 
+    def get(self, *args, **kwargs):
+        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
+        return super().get(*args, **kwargs)
+
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class ComponentUpdateView(UpdateView):
@@ -55,7 +59,11 @@ class ComponentUpdateView(UpdateView):
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
-        component = get_object_or_404(Component, component_id=component_id)
+        component = get_object_or_404(
+            Component,
+            contract__tenancy__tenancy_id=self.request.user.username,
+            component_id=component_id
+        )
 
         component.contract.base_amount -= component.base_amount
         component.contract.total_amount -= component.total_amount
@@ -84,7 +92,12 @@ class ComponentDeleteView(DeleteView):
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
-        return get_object_or_404(Component, component_id=component_id)
+        component = get_object_or_404(
+            Component,
+            contract__tenancy__tenancy_id=self.request.user.username,
+            component_id=component_id
+        )
+        return component
 
     def delete(self, request, *args, **kwargs):
         component = self.get_object()

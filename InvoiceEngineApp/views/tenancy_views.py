@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -10,13 +11,23 @@ from django.views.generic import (
     DeleteView
 )
 from InvoiceEngineApp.models import Tenancy
-from InvoiceEngineApp.forms import TenancyFrom
+from InvoiceEngineApp.forms import TenancyForm
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class TenancyListView(ListView):
     """Show the user a list of all tenancies available to them."""
     template_name = 'InvoiceEngineApp/tenancy_list.html'
+
+    def invoice_contracts(self, company_id):
+        # This function is for testing the invoice engine!
+        tenancy = get_object_or_404(
+            Tenancy.objects.filter(
+                company_id=company_id,
+            )
+        )
+        tenancy.invoice_contracts()
+        return HttpResponse("Invoicing started!")
 
     def get_queryset(self):
         # The user should only see the tenancy objects associated with themselves.
@@ -27,7 +38,7 @@ class TenancyListView(ListView):
 class TenancyCreateView(CreateView):
     """Allow the user to fill in a form to create a new tenancy."""
     template_name = 'InvoiceEngineApp/create.html'
-    form_class = TenancyFrom
+    form_class = TenancyForm
     extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
 
     def form_valid(self, form):
@@ -49,8 +60,10 @@ class TenancyDetailView(DetailView):
     extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        id_ = self.kwargs.get('company_id')
-        return get_object_or_404(Tenancy, company_id=id_)
+        return get_object_or_404(Tenancy.objects.filter(
+            company_id=self.kwargs.get('company_id'),
+            tenancy_id=self.request.user.username)
+        )
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -60,12 +73,11 @@ class TenancyUpdateView(UpdateView):
     tenancies as shown through TenancyListView.
     """
     template_name = 'InvoiceEngineApp/update.html'
-    form_class = TenancyFrom
+    form_class = TenancyForm
     extra_context = {'object_type': "tenancy"}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        id_ = self.kwargs.get('company_id')
-        return get_object_or_404(Tenancy, company_id=id_)
+        return get_object_or_404(Tenancy.objects.filter(company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username))
 
     def get_success_url(self):
         return reverse('tenancy_list')
@@ -81,8 +93,10 @@ class TenancyDeleteView(DeleteView):
     extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
 
     def get_object(self, queryset=Tenancy.objects.all()):
-        id_ = self.kwargs.get('company_id')
-        return get_object_or_404(Tenancy, company_id=id_)
+        return get_object_or_404(Tenancy.objects.filter(
+            company_id=self.kwargs.get('company_id'),
+            tenancy_id=self.request.user.username)
+        )
 
     def get_success_url(self):
         return reverse('tenancy_list')

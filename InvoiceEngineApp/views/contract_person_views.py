@@ -1,5 +1,4 @@
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -8,7 +7,7 @@ from django.views.generic import (
     UpdateView,
     DeleteView
 )
-from InvoiceEngineApp.models import ContractPerson
+from InvoiceEngineApp.models import ContractPerson, Tenancy
 from InvoiceEngineApp.forms import ContractPersonForm
 
 
@@ -33,6 +32,10 @@ class ContractPersonCreateView(CreateView):
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
 
+    def get(self, *args, **kwargs):
+        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
+        return super().get(*args, **kwargs)
+
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class ContractPersonUpdateView(UpdateView):
@@ -42,7 +45,11 @@ class ContractPersonUpdateView(UpdateView):
 
     def get_object(self, queryset=ContractPerson.objects.all()):
         contract_person_id = self.kwargs.get('contract_person_id')
-        return get_object_or_404(ContractPerson, contract_person_id=contract_person_id)
+        return get_object_or_404(
+            ContractPerson,
+            contract__tenancy__tenancy_id=self.request.user.username,
+            contract_person_id=contract_person_id
+        )
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])
@@ -60,7 +67,11 @@ class ContractPersonDeleteView(DeleteView):
 
     def get_object(self, queryset=ContractPerson.objects.all()):
         contract_person_id = self.kwargs.get('contract_person_id')
-        return get_object_or_404(ContractPerson, contract_person_id=contract_person_id)
+        return get_object_or_404(
+            ContractPerson,
+            contract__tenancy__tenancy_id=self.request.user.username,
+            contract_person_id=contract_person_id
+        )
 
     def get_success_url(self):
         return reverse('contract_list', args=[self.kwargs.get('company_id')])

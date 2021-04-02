@@ -1,5 +1,5 @@
-from InvoiceEngineApp.models import *
-from django.db import models as models
+import datetime
+from django.db import models
 from django.db.models import CheckConstraint, Q, F
 from django.shortcuts import get_object_or_404
 
@@ -27,17 +27,42 @@ class Tenancy(models.Model):
         return {'name': self.name,
                 'number of contracts': self.number_of_contracts,
                 'last invoice number': self.last_invoice_number,
-                'date of next prolonging': self.day_next_prolong
+                'date of next prolonging': self.day_next_prolong,
+                'days until invoice expiration': self.days_until_invoice_expiration
                 }
 
     def invoice_contracts(self):
-        # Lock the contracts for updates during the invoicing process
+        # Get the highest invoice id from the database
+        next_invoice_id = 0
+        next_invoice_line_id = 0
+
+        if Invoice.objects.exists():
+            next_invoice_id = Invoice.objects.aggregate(models.Max('invoice_id')).get('invoice_id__max') + 1
+            next_invoice_line_id = \
+                InvoiceLine.objects.aggregate(models.Max('invoice_line_id')).get('invoice_line_id__max') + 1
+
         # Load all information about contracts into memory to reduce database querying
-        contracts = Contract.objects.filter(tenancy=self).select_for_update()
+        contracts = self.contract_set.select_related('contract_type')
+
         # Loop over all contracts and call their create_invoice() method
+        new_invoices = []
+        new_invoice_lines = []
         for contract in contracts:
-            contract.create_invoice(self.days_until_invoice_expiration)
-        pass
+            invoice, invoice_lines, next_invoice_line_id = contract.create_invoice(
+                self.days_until_invoice_expiration,
+                next_invoice_id,
+                next_invoice_line_id
+            )
+
+            next_invoice_id += 1
+
+            new_invoices.append(invoice)
+            new_invoice_lines.extend(invoice_lines)
+
+        print("Received all new objects")
+        print("Starting bulk create at " + datetime.datetime.now().__str__())
+        Invoice.objects.bulk_create(new_invoices)
+        InvoiceLine.objects.bulk_create(new_invoice_lines)
 
 
 class ContractType(models.Model):
@@ -194,10 +219,10 @@ class Contract(models.Model):
         return "Contact: " + self.tenancy.name + " - " + self.contract_type.description
 
     def get_components(self):
-        return Component.objects.filter(contract=self)
+        return self.component_set.all()
 
     def get_contract_persons(self):
-        return ContractPerson.objects.filter(contract=self)
+        return self.contractperson_set.all()
 
     def get_details(self):
         """Method to print all fields and their values."""
@@ -222,10 +247,30 @@ class Contract(models.Model):
                 'balance': self.balance
                 }
 
-    def create_invoice(self, days_until_expiration):
-        # Create an Invoice, then loop over all Components and call their create_invoice_line() method
+    def create_invoice(self, days_until_expiration, invoice_id, invoice_line_id):
+        """Create an Invoice, then loop over all Components and call their create_invoice_line() method."""
+        # Date will default to today, no need to set it
+        invoice = Invoice(
+            invoice_id=invoice_id,
+            contract=self,
+            internal_customer_id=5,
+            external_customer_id=5,
+            description=self.contract_type.description,
+            base_amount=self.base_amount,
+            vat_amount=self.vat_amount,
+            total_amount=self.total_amount,
+            balance=self.balance,
+            expiration_date=datetime.date.today() + datetime.timedelta(days=days_until_expiration),
+            invoice_number=0,
+            general_ledger_account=0
+        )
+        components = self.component_set.select_related('vat_rate', 'base_component')
+        invoice_lines = []
+        for component in components:
+            invoice_lines.append(component.create_invoice_line(invoice, invoice_line_id))
+            invoice_line_id += 1
 
-        pass
+        return invoice, invoice_lines, invoice_line_id
 
     class Meta:
         constraints = [
@@ -234,16 +279,16 @@ class Contract(models.Model):
                 # If we have a set invoicing period, then start day must be specified, and amount of days must not.
                 name='check_period',
                 check=Q(invoicing_period='V')
-                      & Q(invoicing_amount_of_days__isnull=False)
-                      & Q(invoicing_start_day__isnull=True)
+                & Q(invoicing_amount_of_days__isnull=False)
+                & Q(invoicing_start_day__isnull=True)
 
-                      | (Q(invoicing_period='M')
-                         | Q(invoicing_period='Q')
-                         | Q(invoicing_period='H')
-                         | Q(invoicing_period='Y')
-                         )
-                      & Q(invoicing_amount_of_days__isnull=True)
-                      & Q(invoicing_start_day__isnull=False)
+                | (Q(invoicing_period='M')
+                    | Q(invoicing_period='Q')
+                    | Q(invoicing_period='H')
+                    | Q(invoicing_period='Y')
+                   )
+                & Q(invoicing_amount_of_days__isnull=True)
+                & Q(invoicing_start_day__isnull=False)
             ),
             CheckConstraint(
                 name='contract_start_before_end',
@@ -273,9 +318,25 @@ class Component(models.Model):
     def __str__(self):
         return "Component: " + self.description
 
-    def create_invoice_line(self):
-        # Create an InvoiceLine
-        pass
+    def create_invoice_line(self, invoice, invoice_line_id):
+        return InvoiceLine(
+            invoice_line_id=invoice_line_id,
+            component=self,
+            invoice=invoice,
+            description=self.description,
+            vat_type=self.vat_rate.type,
+            base_amount=self.base_amount,
+            vat_amount=self.vat_amount,
+            total_amount=self.total_amount,
+            invoice_number=self.invoice_number,
+            general_ledger_account=0,
+            general_ledger_dimension_base_component=self.base_component.general_ledger_dimension,
+            general_ledger_dimension_contract_1=self.contract.general_ledger_dimension_contract_1,
+            general_ledger_dimension_contract_2=self.contract.general_ledger_dimension_contract_2,
+            general_ledger_dimension_vat=self.vat_rate.general_ledger_dimension,
+            unit_price=self.unit_amount,
+            unit_id=self.unit_id
+        )
 
     class Meta:
         constraints = [
@@ -339,6 +400,24 @@ class Invoice(models.Model):
     expiration_date = models.DateField()
     invoice_number = models.PositiveIntegerField()
     general_ledger_account = models.CharField(max_length=10)
+
+    def get_invoice_lines(self):
+        return self.invoiceline_set.all()
+
+    def get_details(self):
+        """Method to print all fields and their values."""
+        return {'internal customer id': self.internal_customer_id,
+                'external customer id': self.external_customer_id,
+                'description': self.description,
+                'base amount': self.base_amount,
+                'vat amount': self.vat_amount,
+                'total amount': self.total_amount,
+                'balance': self.balance,
+                'date': self.date,
+                'expiration date': self.expiration_date,
+                'invoice number': self.invoice_number,
+                'general ledger account': self.general_ledger_account,
+                }
 
 
 class InvoiceLine(models.Model):
