@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>VAT rate list</title>
-</head>
-<body>
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
     <!-- Display objects -->
     {% for object in object_list %}
         <p>description: {{ object.description }}</p>
@@ -21,5 +17,4 @@
     <p><a href="{% url 'vat_rate_create' company_id %}">Create new VAT rate</a></p>
     <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
 
-</body>
-</html>
+{% endblock %}

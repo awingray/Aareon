@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>New {{ object_type }}</title>
-</head>
-<body>
+
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
     <form method="POST" enctype="multipart/form-data">
 
         <!-- Security token -->
@@ -21,5 +18,4 @@
         {% endif %}
         <input type="submit" value="Submit">
     </form>
-</body>
-</html>
+{% endblock %}

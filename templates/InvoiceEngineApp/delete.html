@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Delete {{ object_type }}</title>
-</head>
-<body>
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
     <form method="post">
 
         {% csrf_token %}
@@ -20,5 +16,4 @@
 
         <input type="submit" value="Confirm">
     </form>
-</body>
-</html>
+{% endblock %}
