@@ -1,13 +1,27 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block content %}
+<div class="container-fluid">
+  <div class="row ">
+    <div class="col">
+    </div>
+    <div class="col">
 
-    <p style="text-align: center;margin: auto;"><h2>Log In</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
+
+      <p style="text-align: center;margin: auto;">
+        <h2>Log In</h2>
+        <form method="post">
+          {% csrf_token %}
+          {{ form.as_p }}
           <button class="btn btn-primary" type="submit" name="action">Login
-  </button>
-    </form></p>
+          </button>
+        </form>
+      </p>
+
+    </div>
+        <div class="col">
+    </div>
+  </div>
+</div>
 
 {% endblock %}
