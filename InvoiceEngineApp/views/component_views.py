@@ -1,118 +1,67 @@
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
-from django.urls import reverse
 from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.generic import (
-    CreateView,
-    UpdateView,
-    DeleteView
-)
-from InvoiceEngineApp.models import Component, Tenancy
+
 from InvoiceEngineApp.forms import ComponentForm
+from InvoiceEngineApp.models import Component
+from InvoiceEngineApp.views.parent_views import (
+    ParentCreateView,
+    ParentUpdateView,
+    ParentDeleteView
+)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ComponentCreateView(CreateView):
+class ComponentCreateView(ParentCreateView):
     template_name = 'InvoiceEngineApp/create.html'
     form_class = ComponentForm
 
-    def get_form_kwargs(self):
-        """Overloaded to add the company id to the kwargs,
-         so the selection for BaseComponent & VATRate can be filtered."""
-        kwargs = super(ComponentCreateView, self).get_form_kwargs()
-        kwargs['company_id'] = self.kwargs.get('company_id')
-        return kwargs
+    def __init__(self):
+        super().__init__()
+        self.object_type = "component"
+        self.list_page = "contract_list"
 
-    def get_context_data(self, **kwargs):
-        context = super(ComponentCreateView, self).get_context_data(**kwargs)
-        context['object_type'] = "component"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
-
-    def form_valid(self, form):
-        # Add the reference to the proper contract to the contract.
-        contract_id = self.kwargs.get('contract_id')
-        form.finalize_creation(contract_id)
-
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
-
-    def get(self, *args, **kwargs):
-        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
-        return super().get(*args, **kwargs)
+    def get_form(self, form_class=None):
+        """Overloaded to filter the selection of base components & VAT rates based on the tenancy."""
+        form = super().get_form()
+        form.filter_selectors(self.tenancy)
+        return form
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ComponentUpdateView(UpdateView):
+class ComponentUpdateView(ParentUpdateView):
     template_name = 'InvoiceEngineApp/update.html'
     form_class = ComponentForm
-    extra_context = {'object_type': "component"}
 
-    def get_form_kwargs(self):
-        """Overloaded to add the company id to the kwargs so the selection can be filtered."""
-        kwargs = super(ComponentUpdateView, self).get_form_kwargs()
-        kwargs['company_id'] = self.kwargs.get('company_id')
-        return kwargs
+    def __init__(self):
+        super().__init__()
+        self.object_type = "component"
+        self.list_page = "contract_list"
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
-        component = get_object_or_404(
-            Component,
-            contract__tenancy__tenancy_id=self.request.user.username,
-            component_id=component_id
-        )
+        qs = queryset.filter(component_id=component_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)
 
-        component.contract.base_amount -= component.base_amount
-        component.contract.total_amount -= component.total_amount
-        component.contract.balance -= component.total_amount
-        component.contract.vat_amount -= component.vat_amount
-
-        return component
+    def get_form(self, form_class=None):
+        """Overloaded to filter the selection of contract types based on the tenancy."""
+        form = super().get_form()
+        form.filter_selectors(self.object.tenancy)
+        return form
 
     def form_valid(self, form):
-        form.compute_derived_fields()
+        """Overload the form valid function to perform additional logic in the form."""
+        form.finalize_update()
         return super().form_valid(form)
 
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
 
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ComponentDeleteView(DeleteView):
+class ComponentDeleteView(ParentDeleteView):
     template_name = 'InvoiceEngineApp/delete.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(ComponentDeleteView, self).get_context_data(**kwargs)
-        context['object_type'] = "component"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
+    def __init__(self):
+        super().__init__()
+        self.object_type = "component"
+        self.list_page = "contract_list"
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
-        component = get_object_or_404(
-            Component,
-            contract__tenancy__tenancy_id=self.request.user.username,
-            component_id=component_id
-        )
-        return component
-
-    def delete(self, request, *args, **kwargs):
-        component = self.get_object()
-
-        # Remove the amounts from the contract
-        contract = component.contract
-        contract.base_amount -= component.base_amount
-        contract.total_amount -= component.total_amount
-        contract.balance -= component.total_amount
-        contract.vat_amount -= component.vat_amount
-        contract.clean()
-        contract.save()
-
-        component.delete()
-        return HttpResponseRedirect(self.get_success_url())
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
+        qs = queryset.filter(component_id=component_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)

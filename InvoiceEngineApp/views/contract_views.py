@@ -1,132 +1,96 @@
-from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
-from django.urls import reverse
-from django.shortcuts import get_object_or_404, render
-from django.utils.decorators import method_decorator
-from django.views.generic import (
-    CreateView,
-    DetailView,
-    ListView,
-    UpdateView,
-    DeleteView
-)
-from InvoiceEngineApp.models import Contract, Tenancy
+from django.shortcuts import get_object_or_404
+
 from InvoiceEngineApp.forms import ContractForm
+from InvoiceEngineApp.models import Contract
+from InvoiceEngineApp.views.parent_views import (
+    ParentListView,
+    ParentCreateView,
+    ParentUpdateView,
+    ParentDeleteView,
+    ParentDetailView
+)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractListView(ListView):
+class ContractListView(ParentListView):
     template_name = 'InvoiceEngineApp/contract_list.html'
-
-    def get_queryset(self):
-        company_id = self.kwargs.get('company_id')
-        return Contract.objects.filter(
-            tenancy=get_object_or_404(
-                Tenancy,
-                tenancy_id=self.request.user.username,
-                company_id=company_id
-            )
-        )
-
-    def get(self, request, *args, **kwargs):
-        context = {'contract_list': self.get_queryset(),
-                   'company_id': self.kwargs.get('company_id')
-                   }
-        return render(request, self.template_name, context)
+    model = Contract
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractCreateView(CreateView):
+class ContractCreateView(ParentCreateView):
     template_name = 'InvoiceEngineApp/create.html'
     form_class = ContractForm
 
-    def get_form_kwargs(self):
-        """Overloaded to add the company id to the kwargs so the selection can be filtered."""
-        kwargs = super(ContractCreateView, self).get_form_kwargs()
-        kwargs['company_id'] = self.kwargs.get('company_id')
-        return kwargs
+    def __init__(self):
+        super().__init__()
+        self.object_type = "contract"
+        self.list_page = "contract_list"
 
-    def get_context_data(self, **kwargs):
-        context = super(ContractCreateView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
-
-    def form_valid(self, form):
-        # Add the reference to the proper tenancy to the contract.
-        company_id = self.kwargs.get('company_id')
-        form.set_tenancy(company_id)
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
-
-    def get(self, *args, **kwargs):
-        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
-        return super().get(*args, **kwargs)
+    def get_form(self, form_class=None):
+        """Overloaded to filter the selection of contract types based on the tenancy."""
+        form = super().get_form()
+        form.filter_selectors(self.tenancy)
+        return form
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractDetailView(DetailView):
+class ContractDetailView(ParentDetailView):
     template_name = 'InvoiceEngineApp/details.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(ContractDetailView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
+    def __init__(self):
+        super().__init__()
+        self.object_type = "contract"
+        self.list_page = "contract_list"
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
-        contract = get_object_or_404(Contract, tenancy__tenancy_id=self.request.user.username, contract_id=contract_id)
-        return contract
+        qs = queryset.filter(contract_id=contract_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractUpdateView(UpdateView):
+class ContractUpdateView(ParentUpdateView):
     template_name = 'InvoiceEngineApp/update.html'
     form_class = ContractForm
-    extra_context = {'object_type': "contract"}
 
-    def get_form_kwargs(self):
-        """Overloaded to add the company id to the kwargs so the selection for Tenancy can be filtered."""
-        kwargs = super(ContractUpdateView, self).get_form_kwargs()
-        kwargs['company_id'] = self.kwargs.get('company_id')
-        return kwargs
+    def __init__(self):
+        super().__init__()
+        self.object_type = "contract"
+        self.list_page = "contract_list"
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
-        contract = get_object_or_404(Contract, tenancy__tenancy_id=self.request.user.username, contract_id=contract_id)
-        return contract
+        qs = queryset.filter(contract_id=contract_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)
 
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
+    def get_form(self, form_class=None):
+        """Overloaded to filter the selection of contract types based on the tenancy."""
+        form = super().get_form()
+        form.filter_selectors(self.object.tenancy)
+        return form
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractDeleteView(DeleteView):
+class ContractDeleteView(ParentDeleteView):
     template_name = 'InvoiceEngineApp/delete.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(ContractDeleteView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
+    def __init__(self):
+        super().__init__()
+        self.object_type = "contract"
+        self.list_page = "contract_list"
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
-        contract = get_object_or_404(Contract, tenancy__tenancy_id=self.request.user.username, contract_id=contract_id)
-        return contract
+        qs = queryset.filter(contract_id=contract_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)
 
     def delete(self, request, *args, **kwargs):
         contract = self.get_object()
 
+        # Update the tenancy: there is one fewer contract now
         contract.tenancy.number_of_contracts -= 1
         contract.tenancy.clean()
         contract.tenancy.save()
 
         contract.delete()
         return HttpResponseRedirect(self.get_success_url())
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])

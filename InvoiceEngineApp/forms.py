@@ -15,32 +15,28 @@ class TenancyForm(forms.ModelForm):
 
 class ContractTypeForm(forms.ModelForm):
     """A form for the user to set the fields of a contract type.  Tenancy is added automatically."""
+    def finalize_creation(self, view_object):
+        self.instance.tenancy = view_object.tenancy
+
     class Meta:
         model = models.ContractType
         exclude = ['tenancy']
 
-    def set_tenancy(self, company_id):
-        self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
-
 
 class BaseComponentForm(forms.ModelForm):
     """A form for the user to set the fields of a base component.  Tenancy is added automatically."""
+    def finalize_creation(self, view_object):
+        self.instance.tenancy = view_object.tenancy
+
     class Meta:
         model = models.BaseComponent
         exclude = ['tenancy']
 
-    def set_tenancy(self, company_id):
-        self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
-
 
 class VATRateForm(forms.ModelForm):
     """A form for the user to set the fields of a VAT rate.  Tenancy is added automatically."""
-    class Meta:
-        model = models.VATRate
-        exclude = ['tenancy']
-
-    def set_tenancy(self, company_id):
-        self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
+    def finalize_creation(self, view_object):
+        self.instance.tenancy = view_object.tenancy
 
     def clean(self):
         cleaned_data = super().clean()
@@ -49,74 +45,62 @@ class VATRateForm(forms.ModelForm):
         if end_date < start_date:
             raise forms.ValidationError("End date should be greater than start date.")
 
+    class Meta:
+        model = models.VATRate
+        exclude = ['tenancy']
+
 
 class ContractForm(forms.ModelForm):
     """A form for the user to set the fields of a contract.  Tenancy is added automatically.
     The user can choose contract type from a drop-down menu.
     """
-    def __init__(self, *args, **kwargs):
-        # Receive the company_id from the view, and use it to make a selection of the available contract types.
-        company_id = kwargs.pop('company_id')
+    def filter_selectors(self, tenancy):
+        self.fields['contract_type'].queryset = models.ContractType.objects.filter(tenancy=tenancy)
 
-        super(ContractForm, self).__init__(*args, **kwargs)
-
-        selected_tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
-
-        self.fields['contract_type'].queryset = models.ContractType.objects.filter(tenancy=selected_tenancy)
-
-    class Meta:
-        model = models.Contract
-        exclude = ['tenancy', 'invoicing_amount_type', 'balance', 'base_amount', 'vat_amount', 'total_amount']
-
-    def set_tenancy(self, company_id):
-        self.instance.tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
+    def finalize_creation(self, view_object):
+        self.instance.tenancy = view_object.tenancy
 
         self.instance.tenancy.number_of_contracts += 1
         self.instance.tenancy.clean()
         self.instance.tenancy.save()
 
+    class Meta:
+        model = models.Contract
+        exclude = ['tenancy', 'invoicing_amount_type', 'balance', 'base_amount', 'vat_amount', 'total_amount']
+
 
 class ComponentForm(forms.ModelForm):
     """A form for the user to set the fields of a component."""
-    def __init__(self, *args, **kwargs):
-        # Receive the company_id from the view, and use it to make a selection of the available base components and
-        # vat rates
-        company_id = kwargs.pop('company_id')
+    def filter_selectors(self, tenancy):
+        self.fields['base_component'].queryset = models.BaseComponent.objects.filter(tenancy=tenancy)
+        self.fields['vat_rate'].queryset = models.VATRate.objects.filter(tenancy=tenancy)
 
-        super(ComponentForm, self).__init__(*args, **kwargs)
+    def finalize_creation(self, view_object):
+        self.instance.tenancy = view_object.tenancy
+        self.instance.contract = get_object_or_404(
+            models.Contract,
+            contract_id=view_object.kwargs.get('contract_id')
+        )
+        self.finalize_update()
 
-        selected_tenancy = get_object_or_404(models.Tenancy, company_id=company_id)
-
-        self.fields['base_component'].queryset = models.BaseComponent.objects.filter(tenancy=selected_tenancy)
-        self.fields['vat_rate'].queryset = models.VATRate.objects.filter(tenancy=selected_tenancy)
-
-    def finalize_creation(self, contract_id):
-        self.instance.contract = get_object_or_404(models.Contract, contract_id=contract_id)
-        self.compute_derived_fields()
-
-    def compute_derived_fields(self):
+    def finalize_update(self):
         self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
         self.instance.total_amount = self.instance.base_amount + self.instance.vat_amount
 
-        # Update contract amount fields
-        self.instance.contract.balance += self.instance.total_amount
-        self.instance.contract.total_amount += self.instance.total_amount
-        self.instance.contract.base_amount += self.instance.base_amount
-        self.instance.contract.vat_amount += self.instance.vat_amount
-
-        self.instance.contract.clean()
-        self.instance.contract.save()
-
     class Meta:
         model = models.Component
-        exclude = ['contract', 'vat_amount', 'total_amount']
+        exclude = ['contract', 'vat_amount', 'total_amount', 'tenancy']
 
 
 class ContractPersonForm(forms.ModelForm):
     """A form for the user to set the fields of a contract person."""
-    def finalize_creation(self, contract_id):
-        self.instance.contract = get_object_or_404(models.Contract, contract_id=contract_id)
+    def finalize_creation(self, view_object):
+        self.instance.tenancy = view_object.tenancy
+        self.instance.contract = get_object_or_404(
+            models.Contract,
+            contract_id=view_object.kwargs.get('contract_id')
+        )
 
     class Meta:
         model = models.ContractPerson
-        exclude = ['contract']
+        exclude = ['contract', 'tenancy']

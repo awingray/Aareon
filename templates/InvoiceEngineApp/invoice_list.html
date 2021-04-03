@@ -5,7 +5,7 @@
 
 {% block content %}
     <!-- Display objects -->
-    {% for invoice in invoice_list %}
+    {% for invoice in object_list %}
         <p>description: {{ invoice.description }}</p>
         <!-- Give the user options to view, update, and delete the contract type -->
         <p><a href="{% url 'invoice_details' company_id invoice.invoice_id %}">Details</a></p>

@@ -3,7 +3,7 @@
 
 {% block content %}
     <!-- Display objects -->
-    {% for contract in contract_list %}
+    {% for contract in object_list %}
         <p>description: {{ contract.description }}</p>
         <!-- Give the user options to view, update, and delete the contract type -->
         <p><a href="{% url 'contract_details' company_id contract.contract_id %}">Details</a></p>
