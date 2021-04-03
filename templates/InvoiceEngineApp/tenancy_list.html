@@ -15,61 +15,61 @@
 
 {% block content %}
 
-<div class="container-fluid">
-{% for object in object_list %}
-  <div class="row">
-    <div class="col">
-      <!-- Display objects -->
+<div class="col">
 
-      <div class="accordion accordion-flush" id="tenancy_list">
-        
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="flush-headingOne">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-              data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
-              {{ object.name }}
-            </button>
-          </h2>
-          <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne"
-            data-bs-parent="#tenancy_list">
-            <div class="accordion-body">
+  <!-- Display objects -->
+  {% for object in object_list %}
 
-              <!-- Give the user options to view, update, and delete the tenancy -->
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title"> {{ object.name }}</h5>
+      <ul class="nav">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="#">Tenancy</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'contract_type_list' object.company_id %}">Contract types</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'base_component_list' object.company_id %}">Base components</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'vat_rate_list' object.company_id %}">VAT rates</a>
+        </li>
 
-                  {% for key, value in object.get_details.items %}
-                    <p>{{ key }}: {{ value }}</p>
-                {% endfor %}
-              <p><a href="{% url 'tenancy_details' object.company_id %}">Details</a></p>
-              <p><a href="{% url 'tenancy_update' object.company_id %}">Update</a></p>
-              <p><a href="{% url 'tenancy_delete' object.company_id %}">Delete</a></p>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'contract_list' object.company_id %}">Contracts</a>
+        </li>
 
-              <p>
-                <a href="{% url 'contract_type_list' object.company_id %}">View contract types</a> <br>
-                <a href="{% url 'base_component_list' object.company_id %}">View base components</a> <br>
-                <a href="{% url 'vat_rate_list' object.company_id %}">View VAT rates</a> <br>
-                <a href="{% url 'contract_list' object.company_id %}">View contracts</a> <br>
-                <a href="{% url 'invoice_list' object.company_id %}">View invoices</a> <br>
-
-                {#            This is for testing the invoice engine#}
-                <a target="_blank" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
-
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'invoice_list' object.company_id %}">Invoices</a>
+        </li>
+      </ul>
+      {% for key, value in object.get_details.items %}
+      <p>{{ key }}: {{ value }}</p>
+      {% endfor %}
+      <p><a href="{% url 'tenancy_details' object.company_id %}">Details</a></p>
+      <p><a href="{% url 'tenancy_update' object.company_id %}">Update</a></p>
+      <p><a href="{% url 'tenancy_delete' object.company_id %}">Delete</a></p>
 
 
+
+
+
+
+
+
+      {#            This is for testing the invoice engine#}
+      <a class="btn btn-primary" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
 
     </div>
-
-
   </div>
+  {% empty %}
+  <p>No objects yet</p>
+  {% endfor %}
 
-      <!-- If object_list is empty  -->
-      {% empty %}
-      <p>No objects yet</p>
-      {% endfor %}
 </div>
+
+
 
 {% endblock %}
