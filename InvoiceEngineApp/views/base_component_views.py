@@ -1,123 +1,72 @@
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.shortcuts import get_object_or_404, render
-from django.utils.decorators import method_decorator
-from django.views.generic import (
-    CreateView,
-    DetailView,
-    ListView,
-    UpdateView,
-    DeleteView
-)
-from InvoiceEngineApp.models import BaseComponent, Tenancy
+from django.shortcuts import get_object_or_404
+
 from InvoiceEngineApp.forms import BaseComponentForm
+from InvoiceEngineApp.models import BaseComponent
+from InvoiceEngineApp.views.parent_views import (
+    ParentListView,
+    ParentCreateView,
+    ParentUpdateView,
+    ParentDeleteView,
+    ParentDetailView
+)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class BaseComponentListView(ListView):
+class BaseComponentListView(ParentListView):
     template_name = 'InvoiceEngineApp/base_component_list.html'
-
-    def get_queryset(self):
-        company_id = self.kwargs.get('company_id')
-        return BaseComponent.objects.filter(
-            tenancy=get_object_or_404(
-                Tenancy,
-                tenancy_id=self.request.user.username,
-                company_id=company_id
-            )
-        )
-
-    def get(self, request, *args, **kwargs):
-        context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
-        return render(request, self.template_name, context)
+    model = BaseComponent
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class BaseComponentCreateView(CreateView):
+class BaseComponentCreateView(ParentCreateView):
     template_name = 'InvoiceEngineApp/create.html'
     form_class = BaseComponentForm
 
-    def get_context_data(self, **kwargs):
-        context = super(BaseComponentCreateView, self).get_context_data(**kwargs)
-        context['object_type'] = "base component"
-        context['list_page'] = ["base_component_list", self.kwargs.get('company_id')]
-        return context
-
-    def form_valid(self, form):
-        # Add the reference to the proper tenancy to the base component.
-        company_id = self.kwargs.get('company_id')
-        form.set_tenancy(company_id)
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('base_component_list', args=[self.kwargs.get('company_id')])
-
-    def get(self, *args, **kwargs):
-        get_object_or_404(
-            Tenancy,
-            company_id=self.kwargs.get('company_id'),
-            tenancy_id=self.request.user.username
-        )
-        return super().get(*args, **kwargs)
+    def __init__(self):
+        super().__init__()
+        self.object_type = "base component"
+        self.list_page = "base_component_list"
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class BaseComponentDetailView(DetailView):
+class BaseComponentDetailView(ParentDetailView):
     template_name = 'InvoiceEngineApp/details.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(BaseComponentDetailView, self).get_context_data(**kwargs)
-        context['object_type'] = "base component"
-        context['list_page'] = ["base_component_list", self.kwargs.get('company_id')]
-        return context
+    def __init__(self):
+        super().__init__()
+        self.object_type = "base component"
+        self.list_page = "base_component_list"
 
     def get_object(self, queryset=BaseComponent.objects.all()):
         base_component_id = self.kwargs.get('base_component_id')
-        base_component = get_object_or_404(
-            BaseComponent,
-            tenancy__tenancy_id=self.request.user.username,
-            base_component_id=base_component_id
-        )
-        return base_component
+        qs = queryset.filter(base_component_id=base_component_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class BaseComponentUpdateView(UpdateView):
+class BaseComponentUpdateView(ParentUpdateView):
     template_name = 'InvoiceEngineApp/update.html'
     form_class = BaseComponentForm
-    extra_context = {'object_type': "base component"}
+
+    def __init__(self):
+        super().__init__()
+        self.object_type = "base component"
+        self.list_page = "base_component_list"
 
     def get_object(self, queryset=BaseComponent.objects.all()):
         base_component_id = self.kwargs.get('base_component_id')
-        base_component = get_object_or_404(
-            BaseComponent,
-            tenancy__tenancy_id=self.request.user.username,
-            base_component_id=base_component_id
-        )
-        return base_component
-
-    def get_success_url(self):
-        return reverse('base_component_list', args=[self.kwargs.get('company_id')])
+        qs = queryset.filter(base_component_id=base_component_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class BaseComponentDeleteView(DeleteView):
+class BaseComponentDeleteView(ParentDeleteView):
     template_name = 'InvoiceEngineApp/delete.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(BaseComponentDeleteView, self).get_context_data(**kwargs)
-        context['object_type'] = "base component"
-        context['list_page'] = ["base_component_list", self.kwargs.get('company_id')]
-        return context
+    def __init__(self):
+        super().__init__()
+        self.object_type = "base component"
+        self.list_page = "base_component_list"
 
     def get_object(self, queryset=BaseComponent.objects.all()):
         base_component_id = self.kwargs.get('base_component_id')
-        base_component = get_object_or_404(
-            BaseComponent,
-            tenancy__tenancy_id=self.request.user.username,
-            base_component_id=base_component_id
-        )
-        return base_component
-
-    def get_success_url(self):
-        return reverse('base_component_list', args=[self.kwargs.get('company_id')])
+        qs = queryset.filter(base_component_id=base_component_id)
+        qs = super().filter_by_tenancy(qs)
+        return get_object_or_404(qs)

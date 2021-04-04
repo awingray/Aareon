@@ -18,6 +18,7 @@ from InvoiceEngineApp.forms import TenancyForm
 class TenancyListView(ListView):
     """Show the user a list of all tenancies available to them."""
     template_name = 'InvoiceEngineApp/tenancy_list.html'
+    model = Tenancy
 
     def invoice_contracts(self, company_id):
         # This function is for testing the invoice engine!
@@ -31,7 +32,8 @@ class TenancyListView(ListView):
 
     def get_queryset(self):
         # The user should only see the tenancy objects associated with themselves.
-        return Tenancy.objects.filter(tenancy_id=self.request.user.username)
+        qs = super().get_queryset()
+        return qs.filter(tenancy_id=self.request.user.username)
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')

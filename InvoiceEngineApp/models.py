@@ -65,14 +65,20 @@ class Tenancy(models.Model):
         InvoiceLine.objects.bulk_create(new_invoice_lines)
 
 
-class ContractType(models.Model):
+class TenancyDependentModel(models.Model):
+    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)
+
+    class Meta:
+        abstract = True
+
+
+class ContractType(TenancyDependentModel):
     """A company may have contracts for different services, for instance a housing provider which has different
     contracts for different types of apartments, parking spaces, garages, etc.
 
     A contract type always corresponds to a tenancy.
     """
     contract_type_id = models.AutoField(primary_key=True)
-    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)  # Ask if this should cascade
     code = models.PositiveIntegerField()
     type = models.CharField(max_length=1)
     description = models.CharField(max_length=50)
@@ -96,14 +102,13 @@ class ContractType(models.Model):
         return self.objects.filter(tenancy=get_object_or_404(Tenancy, company_id=company_id))
 
 
-class BaseComponent(models.Model):
+class BaseComponent(TenancyDependentModel):
     """The base component represents a basic unit for a contract line.  In the case of a housing provider, this could
     for instance be one line specifying the rent price, and one line specifying any service costs.
 
     A base component always corresponds to a tenancy.
     """
     base_component_id = models.AutoField(primary_key=True)
-    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)  # Ask if this should cascade
     code = models.PositiveIntegerField()  # DESCRIPTION
     description = models.CharField(max_length=50)
     general_ledger_debit = models.CharField(max_length=10)
@@ -126,14 +131,13 @@ class BaseComponent(models.Model):
                 }
 
 
-class VATRate(models.Model):
+class VATRate(TenancyDependentModel):
     """The VAT rate defines the value added tax charged for a contract line.  In the Netherlands, there are three types
     of VAT: none (0%), low (9%), or high (21%).
 
     A VAT rate always corresponds to a tenancy.
     """
     vat_rate_id = models.AutoField(primary_key=True)
-    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)  # Ask if this should cascade
     type = models.PositiveIntegerField()
     description = models.CharField(max_length=30)
     start_date = models.DateField()
@@ -158,7 +162,7 @@ class VATRate(models.Model):
                 }
 
 
-class Contract(models.Model):
+class Contract(TenancyDependentModel):
     """The contract is an agreement between two parties (e.g. a company and a person).  In this case, the person(s)
     agree to pay some amount per some time period in exchange for a service or product.
     """
@@ -183,7 +187,6 @@ class Contract(models.Model):
     ]
 
     contract_id = models.AutoField(primary_key=True)
-    tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)  # Ask if this should cascade
     contract_type = models.ForeignKey(ContractType, on_delete=models.CASCADE)  # Ask if this should cascade
     status = models.CharField(max_length=1)
     invoicing_period = models.CharField(
@@ -252,6 +255,7 @@ class Contract(models.Model):
         # Date will default to today, no need to set it
         invoice = Invoice(
             invoice_id=invoice_id,
+            tenancy=self.tenancy,
             contract=self,
             internal_customer_id=5,
             external_customer_id=5,
@@ -297,7 +301,7 @@ class Contract(models.Model):
         ]
 
 
-class Component(models.Model):
+class Component(TenancyDependentModel):
     """A Contract is built up of one or more components.  These 'contract lines' specify the amounts and services."""
     component_id = models.AutoField(primary_key=True)
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)  # Ask if this should cascade
@@ -347,7 +351,7 @@ class Component(models.Model):
         ]
 
 
-class ContractPerson(models.Model):
+class ContractPerson(TenancyDependentModel):
     """A contract contains one or more contract persons."""
     AI = 'A'
     EMAIL = 'E'
@@ -386,7 +390,7 @@ class ContractPerson(models.Model):
         return "contract person " + self.name
 
 
-class Invoice(models.Model):
+class Invoice(TenancyDependentModel):
     invoice_id = models.AutoField(primary_key=True)
     contract = models.OneToOneField(Contract, on_delete=models.CASCADE)  # Ask if this should cascade
     internal_customer_id = models.PositiveIntegerField()
