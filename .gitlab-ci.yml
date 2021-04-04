@@ -1,3 +1,9 @@
+stages:
+  - build
+  - test
+  - deploy
+
+
 image: python:3.9
 
 services:
@@ -5,22 +11,48 @@ services:
 
 variables:
   POSTGRES_DB: invoice_engine_database
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+
 
 # This folder is cached between builds
 cache:
   paths:
     - ~/.cache/pip/
+build_a:
+  stage: build
+  script:
+    - echo "This job builds something."
 
-test: 
-    services:
-      - postgres:13.2
-    variables:
-      POSTGRES_DB: invoice_engine_database
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    script:
-      - export DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
-      - apt-get update -qy
-      - apt-get install -y python3-dev python3-pip
-      - pip install -r requirements.txt
-      - python manage.py test
+build_b:
+  stage: build
+  script:
+    - echo "This job builds something else."
+
+test_a:
+  stage: test
+  script:
+    - export DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
+    - apt-get update -qy
+    - apt-get install -y python3-dev python3-pip
+    - pip install -r requirements.txt
+    - python manage.py test
+
+test_b:
+  stage: test
+  script:
+    - echo "This job tests something else. It will only run when all jobs in the"
+    - echo "build stage are complete too. It will start at about the same time as test_a."
+
+deploy_a:
+  stage: deploy
+  script:
+    - echo "This job deploys something. It will only run when all jobs in the"
+    - echo "test stage complete."
+
+deploy_b:
+  stage: deploy
+  script:
+    - echo "This job deploys something else. It will only run when all jobs in the"
+    - echo "test stage complete. It will start at about the same time as deploy_a."
+   
