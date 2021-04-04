@@ -26,32 +26,32 @@
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="/profile">Home</a>
               </li>
-              
+
               {% block navbar %}
 
               {% endblock %}
             </ul>
-{% if request.user.is_authenticated %}
-                      <ul class="nav navbar-nav" style="float: right">
+            {% if request.user.is_authenticated %}
+            <ul class="nav navbar-nav" style="float: right">
 
               <li class="nav-item">
                 <a class="nav-link" aria-current="page" href="{% url 'logout' %}">Logout</a>
               </li>
-              </ul>
-              {% endif %}
+            </ul>
+            {% endif %}
           </div>
-          
-              
+
+
         </div>
       </nav>
 
       <section id="main">
-      <div class="container-fluid">
-      <div class="row">
-        {% block content %}
-        {% endblock %}
+        <div class="container-fluid">
+          <div class="row">
+            {% block content %}
+            {% endblock %}
+          </div>
         </div>
-      </div>
       </section>
 
     </body>

@@ -1,15 +1,10 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block navbar %}
-<li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
-    aria-expanded="false">
-    Actions
-  </a>
-  <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
 
-    <li><a class="dropdown-item" href="{% url 'tenancy_create' %}">Create new tenancy</a></li>
-  </ul>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'tenancy_create' %}">Create new tenancy</a>
+
 </li>
 {% endblock %}
 
@@ -20,7 +15,7 @@
   <!-- Display objects -->
   {% for object in object_list %}
 
-  <div class="card">
+  <div class="card shadow p-3 mb-5 bg-body rounded" >
     <div class="card-body">
       <h5 class="card-title"> {{ object.name }}</h5>
       <ul class="nav">
@@ -36,31 +31,20 @@
         <li class="nav-item">
           <a class="nav-link" href="{% url 'vat_rate_list' object.company_id %}">VAT rates</a>
         </li>
-
         <li class="nav-item">
           <a class="nav-link" href="{% url 'contract_list' object.company_id %}">Contracts</a>
         </li>
-
         <li class="nav-item">
           <a class="nav-link" href="{% url 'invoice_list' object.company_id %}">Invoices</a>
         </li>
       </ul>
-      {% for key, value in object.get_details.items %}
-      <p>{{ key }}: {{ value }}</p>
-      {% endfor %}
-      <p><a href="{% url 'tenancy_details' object.company_id %}">Details</a></p>
-      <p><a href="{% url 'tenancy_update' object.company_id %}">Update</a></p>
-      <p><a href="{% url 'tenancy_delete' object.company_id %}">Delete</a></p>
+      <a class="btn btn-primary" href="{% url 'tenancy_details' object.company_id %}">Details</a>
 
-
-
-
-
-
-
+      <a class="btn btn-primary"href="{% url 'tenancy_update' object.company_id %}">Update</a>
+      <a class="btn btn-primary"href="{% url 'tenancy_delete' object.company_id %}">Delete</a>
 
       {#            This is for testing the invoice engine#}
-      <a class="btn btn-primary" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
+      <a class="btn btn-dark" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
 
     </div>
   </div>
