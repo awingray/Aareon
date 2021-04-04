@@ -1,20 +1,45 @@
 
 {% extends 'InvoiceEngineApp/base.html' %}
 
-{% block content %}
-    <!-- Display objects -->
-    {% for object in object_list %}
-        <p>description: {{ object.description }}</p>
-        <!-- Give the user options to view, update, and delete the contract type -->
-        <p><a href="{% url 'contract_type_details' company_id object.contract_type_id %}">Details</a></p>
-        <p><a href="{% url 'contract_type_update' company_id object.contract_type_id %}">Update</a></p>
-        <p><a href="{% url 'contract_type_delete' company_id object.contract_type_id %}">Delete</a></p>
+{% block navbar %}
 
-        <hr/>
-    <!-- If object_list is empty  -->
-    {% empty %}
-        <p>No objects yet</p>
-    {% endfor %}
-    <p><a href="{% url 'contract_type_create' company_id %}">Create new contract type</a></p>
-    <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'contract_type_create' company_id %}">Create new contract type</a>
+
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'tenancy_list' %}">Back to tenancy list</a>
+
+</li>
+{% endblock %}
+{% block content %}
+
+
+<div class="col">
+
+  <!-- Display objects -->
+  {% for object in object_list %}
+
+  <div class="card shadow p-3 mb-5 bg-body rounded" >
+    <div class="card-body">
+      <h5 class="card-title"> {{ object.description }}</h5>
+      <ul class="nav">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="{% url 'contract_type_details' company_id object.contract_type_id %}">Details</a></li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'contract_type_update' company_id object.contract_type_id %}">Update</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'contract_type_delete' company_id object.base_component_id %}">Delete</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  {% empty %}
+  <p>No objects yet</p>
+  {% endfor %}
+
+</div>
+
 {% endblock %}
