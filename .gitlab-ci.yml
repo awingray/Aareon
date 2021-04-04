@@ -46,7 +46,7 @@ test:
   stage: test
   image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
   services:
-    postgres:13.2
+    - postgres:13.2
 
   variables:
     POSTGRES_DB: invoice_engine_database
