@@ -1,57 +1,48 @@
+image: docker:19.03.12
+services:
+  - docker:19.03.12-dind
+
 stages:
   - build
   - test
+  - release
   - deploy
 
-# image: python:3.9
-image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
-services:
-  - postgres:13.2
 variables:
-  POSTGRES_DB: invoice_engine_database
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
+  # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
 
-# This folder is cached between builds
-cache:
-  paths:
-    - ~/.cache/pip/
+before_script:
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 build:
   stage: build
-
-  image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
-  services:
-    - postgres:13.2
   script:
-    - |
-      if [[ -z "$CI_COMMIT_TAG" ]]; then
-        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG}
-        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA}
-      else
-        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE}
-        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG}
-      fi
-  rules:
-    - if: '$AUTO_DEVOPS_PLATFORM_TARGET == "EC2"'
-      when: never
-    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
+    - docker build --pull -t $CONTAINER_TEST_IMAGE .
+    - docker push $CONTAINER_TEST_IMAGE
 
 test:
-  
   stage: test
-  image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
-  services:
-    - postgres:13.2
   script:
-    - export DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
-    - apt-get update -qy
-    - apt-get install -y python3-dev python3-pip
-    - pip install -r requirements.txt
-    - python manage.py test
+    - docker pull $CONTAINER_TEST_IMAGE
+    - docker run $CONTAINER_TEST_IMAGE python manage.py test
+
+
+release-image:
+  stage: release
+  script:
+    - docker pull $CONTAINER_TEST_IMAGE
+    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
+    - docker push $CONTAINER_RELEASE_IMAGE
+  only:
+    - master
 
 deploy:
   stage: deploy
   script:
-    - echo "This job deploys something. It will only run when all jobs in the"
-    - echo "test stage complete."
+    - ./deploy.sh
+  only:
+    - master
