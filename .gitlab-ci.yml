@@ -34,7 +34,6 @@ build:
         export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE}
         export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG}
       fi
-    - /build/build.sh
   rules:
     - if: '$AUTO_DEVOPS_PLATFORM_TARGET == "EC2"'
       when: never
