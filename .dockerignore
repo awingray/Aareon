@@ -1,4 +1,8 @@
 .idea/
+.vscode/
+.pytest_cache/
+*.code-workspace
+*.pdf
 documentation/
 venv/
 .gitignore
