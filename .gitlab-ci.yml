@@ -8,11 +8,10 @@ stages:
 #  image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
 # services:
 # - postgres:13.2
-
-# variables:
-#  POSTGRES_DB: invoice_engine_database
-#  POSTGRES_USER: postgres
-#  POSTGRES_PASSWORD: postgres
+variables:
+  POSTGRES_DB: invoice_engine_database
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
 
 # This folder is cached between builds
 cache:
@@ -47,11 +46,6 @@ test:
   image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
   services:
     - postgres:13.2
-
-  variables:
-    POSTGRES_DB: invoice_engine_database
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: postgres
   script:
     - export DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
     - apt-get update -qy
