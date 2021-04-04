@@ -3,11 +3,10 @@ stages:
   - test
   - deploy
 
-
 # image: python:3.9
-#  image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
-# services:
-# - postgres:13.2
+image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
+services:
+  - postgres:13.2
 variables:
   POSTGRES_DB: invoice_engine_database
   POSTGRES_USER: postgres
@@ -23,7 +22,6 @@ build:
 
   image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
   services:
-    - docker:latest
     - postgres:13.2
   script:
     - |
