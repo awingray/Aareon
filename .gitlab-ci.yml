@@ -4,33 +4,54 @@ stages:
   - deploy
 
 
-image: python:3.9
+# image: python:3.9
+#  image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
+# services:
+# - postgres:13.2
 
-services:
-  - postgres:13.2
-
-variables:
-  POSTGRES_DB: invoice_engine_database
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
-
+# variables:
+#  POSTGRES_DB: invoice_engine_database
+#  POSTGRES_USER: postgres
+#  POSTGRES_PASSWORD: postgres
 
 # This folder is cached between builds
 cache:
   paths:
     - ~/.cache/pip/
-build_a:
-  stage: build
-  script:
-    - echo "This job builds something."
 
-build_b:
+build:
   stage: build
-  script:
-    - echo "This job builds something else."
 
-test_a:
+  image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
+  services:
+    - docker:latest
+    - postgres:13.2
+  script:
+    - |
+      if [[ -z "$CI_COMMIT_TAG" ]]; then
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA}
+      else
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG}
+      fi
+    - /build/build.sh
+  rules:
+    - if: '$AUTO_DEVOPS_PLATFORM_TARGET == "EC2"'
+      when: never
+    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
+
+test:
+  
   stage: test
+  image: "registry.gitlab.com/rug-se-invoice-engine/invoice-engine:latest"
+  services:
+    postgres:13.2
+
+  variables:
+    POSTGRES_DB: invoice_engine_database
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
   script:
     - export DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
     - apt-get update -qy
@@ -38,21 +59,8 @@ test_a:
     - pip install -r requirements.txt
     - python manage.py test
 
-test_b:
-  stage: test
-  script:
-    - echo "This job tests something else. It will only run when all jobs in the"
-    - echo "build stage are complete too. It will start at about the same time as test_a."
-
-deploy_a:
+deploy:
   stage: deploy
   script:
     - echo "This job deploys something. It will only run when all jobs in the"
     - echo "test stage complete."
-
-deploy_b:
-  stage: deploy
-  script:
-    - echo "This job deploys something else. It will only run when all jobs in the"
-    - echo "test stage complete. It will start at about the same time as deploy_a."
-   
