@@ -141,7 +141,7 @@ class VATRate(TenancyDependentModel):
     type = models.PositiveIntegerField()
     description = models.CharField(max_length=30)
     start_date = models.DateField()
-    end_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
     percentage = models.FloatField()
     general_ledger_account = models.CharField(max_length=10)
     general_ledger_dimension = models.CharField(max_length=10)
@@ -206,7 +206,7 @@ class Contract(TenancyDependentModel):
     internal_customer_id = models.PositiveIntegerField()
     external_customer_id = models.PositiveIntegerField()
     start_date = models.DateField()
-    end_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
     end_date_prolong = models.DateField()
     next_date_prolong = models.DateField()
     general_ledger_dimension_contract_1 = models.CharField(max_length=10)
@@ -294,10 +294,6 @@ class Contract(TenancyDependentModel):
                 & Q(invoicing_amount_of_days__isnull=True)
                 & Q(invoicing_start_day__isnull=False)
             ),
-            CheckConstraint(
-                name='contract_start_before_end',
-                check=Q(end_date__gt=F('start_date'))
-            )
         ]
 
 
@@ -309,7 +305,7 @@ class Component(TenancyDependentModel):
     vat_rate = models.ForeignKey(VATRate, on_delete=models.CASCADE)  # Ask if this should cascade
     description = models.CharField(max_length=50)
     start_date = models.DateField()
-    end_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
     end_date_prolong = models.DateField()
     next_date_prolong = models.DateField()
     base_amount = models.FloatField()
@@ -332,7 +328,7 @@ class Component(TenancyDependentModel):
             base_amount=self.base_amount,
             vat_amount=self.vat_amount,
             total_amount=self.total_amount,
-            invoice_number=self.invoice_number,
+            number_of_units=self.number_of_units,
             general_ledger_account=0,
             general_ledger_dimension_base_component=self.base_component.general_ledger_dimension,
             general_ledger_dimension_contract_1=self.contract.general_ledger_dimension_contract_1,
@@ -341,14 +337,6 @@ class Component(TenancyDependentModel):
             unit_price=self.unit_amount,
             unit_id=self.unit_id
         )
-
-    class Meta:
-        constraints = [
-            CheckConstraint(
-                check=Q(end_date__gt=F('start_date')),
-                name='component_start_before_end'
-            )
-        ]
 
 
 class ContractPerson(TenancyDependentModel):
@@ -371,7 +359,7 @@ class ContractPerson(TenancyDependentModel):
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)  # Ask if this should cascade
     type = models.CharField(max_length=1)
     start_date = models.DateField()
-    end_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
     name = models.CharField(max_length=50)
     address = models.CharField(max_length=50)
     city = models.CharField(max_length=50)
@@ -433,7 +421,6 @@ class InvoiceLine(models.Model):
     base_amount = models.FloatField()
     vat_amount = models.FloatField(default=0.0)
     total_amount = models.FloatField(default=0.0)
-    invoice_number = models.FloatField()
     general_ledger_account = models.CharField(max_length=10)
     general_ledger_dimension_base_component = models.CharField(max_length=10)
     general_ledger_dimension_contract_1 = models.CharField(max_length=10)
@@ -441,3 +428,4 @@ class InvoiceLine(models.Model):
     general_ledger_dimension_vat = models.CharField(max_length=10)
     unit_price = models.FloatField()
     unit_id = models.CharField(max_length=10)
+    number_of_units = models.FloatField()
