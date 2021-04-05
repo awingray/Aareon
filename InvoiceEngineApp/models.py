@@ -312,12 +312,12 @@ class Component(TenancyDependentModel):
     end_date = models.DateField()
     end_date_prolong = models.DateField()
     next_date_prolong = models.DateField()
-    invoice_number = models.FloatField()
     base_amount = models.FloatField()
     vat_amount = models.FloatField(default=0.0)
     total_amount = models.FloatField(default=0.0)
     unit_id = models.CharField(max_length=10)
     unit_amount = models.FloatField()
+    number_of_units = models.FloatField()
 
     def __str__(self):
         return "Component: " + self.description
