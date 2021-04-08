@@ -1,6 +1,6 @@
 import datetime
-from django.db import models
-from django.db.models import CheckConstraint, Q
+from django.db import models, transaction
+from django.db.models import F
 
 
 class Tenancy(models.Model):
@@ -41,40 +41,90 @@ class Tenancy(models.Model):
                 InvoiceLine.objects.aggregate(models.Max('invoice_line_id')).get('invoice_line_id__max') + 1
 
         # Load all information about contracts that should be invoiced today or before today into memory
-        contracts = self.contract_set.filter(
-            next_date_prolong__lte=datetime.date.today()
-        ).select_related('contract_type')
+        contracts = list(
+            self.contract_set.filter(
+                next_date_prolong__lte=datetime.date.today()
+            ).order_by('contract_id').select_related('contract_type')
+        )
 
-        # Possibly load all components into memory as well and use list comprehension if that is faster
+        # Load all components into memory as well (possibly faster)
+        components = list(
+            self.component_set.filter(
+                next_date_prolong__lte=datetime.date.today()
+            ).order_by('contract_id').select_related('vat_rate', 'base_component')
+        )
+        amount_of_components = len(components)
 
-        # Loop over all contracts and call their create_invoice() method
+        # Prepare lists to store new invoices for a single database query at the end of invoicing
         new_invoices = []
         new_invoice_lines = []
+        # Create Invoices for all contracts
         for contract in contracts:
+            # Debug print statement
             if next_invoice_id % 1000 == 0:
                 print("contract no " + next_invoice_id.__str__())
 
-            invoice, invoice_lines, next_invoice_line_id = contract.create_invoice(
-                self,
-                next_invoice_id,
-                next_invoice_line_id
-            )
+            invoice = contract.create_invoice(self, next_invoice_id)
+            self.last_invoice_number += 1
+
+            # Create InvoiceLines for the components of this contract
+            while amount_of_components > 0 and components[0].contract_id == contract.contract_id:
+                component = components.pop(0)
+                amount_of_components -= 1
+
+                invoice_line = component.create_invoice_line(invoice, contract, next_invoice_line_id)
+
+                next_invoice_line_id += 1
+                new_invoice_lines.append(invoice_line)
+
+            # The invoice is now finished (including all its InvoiceLines)
+            # Update amounts on the contract (using F is faster than +=)
+            contract.base_amount = F('base_amount') + invoice.base_amount
+            contract.vat_amount = F('vat_amount') + invoice.vat_amount
+            contract.total_amount = F('total_amount') + invoice.total_amount
+            contract.balance = F('balance') + invoice.balance
+
+            # Update next invoicing date on the contract
+            month = contract.next_date_prolong.month
+            year = contract.next_date_prolong.year
+            day = contract.next_date_prolong.day
+            if contract.invoicing_period == contract.MONTH:
+                month += 1
+            elif contract.invoicing_period == contract.QUARTER:
+                month += 3
+            elif contract.invoicing_period == contract.HALF_YEAR:
+                month += 6
+            elif contract.invoicing_period == contract.YEAR:
+                year += 1
+
+            if month > 12:
+                month %= 12
+                year += 1
+
+            contract.next_date_prolong = datetime.date(year=year, month=month, day=day)
 
             next_invoice_id += 1
-
             new_invoices.append(invoice)
-            new_invoice_lines.extend(invoice_lines)
 
         print("Received all new objects")
-        print("Starting bulk create at " + datetime.datetime.now().__str__())
-        # Add all Invoices to the database with optimized bulk create
-        # Do this before adding InvoiceLines, otherwise their foreign key pointing to an Invoice will fail
-        Invoice.objects.bulk_create(new_invoices)
-        InvoiceLine.objects.bulk_create(new_invoice_lines)
+        print("Starting database transaction at " + datetime.datetime.now().__str__())
+        # Save the changes made to the database in one transaction.  If one fails, they will all fail
+        with transaction.atomic():
+            print("Starting 'bulk update' of contracts at " + datetime.datetime.now().__str__())
+            for contract in contracts:
+                contract.save(
+                    update_fields=['base_amount', 'vat_amount', 'total_amount', 'balance', 'next_date_prolong']
+                )
 
-        # Save the tenancy with the new last_invoice_number
-        self.clean()
-        self.save()
+            # Add all Invoices to the database with optimized bulk create
+            # Do this before adding InvoiceLines, otherwise their foreign key pointing to an Invoice will fail
+            print("Starting bulk create of invoices at " + datetime.datetime.now().__str__())
+            Invoice.objects.bulk_create(new_invoices)
+            print("Starting bulk create of invoice lines at " + datetime.datetime.now().__str__())
+            InvoiceLine.objects.bulk_create(new_invoice_lines)
+
+            # Save the tenancy with the new last_invoice_number
+            self.save(update_fields=['last_invoice_number'])
 
 
 class TenancyDependentModel(models.Model):
@@ -267,13 +317,12 @@ class Contract(TenancyDependentModel):
                 'balance': self.balance
                 }
 
-    def create_invoice(self, tenancy, invoice_id, invoice_line_id):
+    def create_invoice(self, tenancy, invoice_id):
         """Create an Invoice, then loop over all Components and call their create_invoice_line() method."""
-        tenancy.last_invoice_number += 1
         date_today = datetime.date.today()
 
         # Date will default to today, no need to set it.  No need to set amounts either
-        invoice = Invoice(
+        return Invoice(
             invoice_id=invoice_id,
             tenancy=tenancy,
             contract=self,
@@ -284,72 +333,6 @@ class Contract(TenancyDependentModel):
             invoice_number=tenancy.last_invoice_number,
             general_ledger_account=self.contract_type.general_ledger_debit
         )
-        # Only select the components that need to be invoiced
-        components = self.component_set.filter(
-            next_date_prolong__lte=date_today
-        ).select_related('vat_rate', 'base_component')
-        invoice_lines = []
-        for component in components:
-            invoice_line = component.create_invoice_line(invoice, invoice_line_id)
-
-            # Update amounts on the invoice
-            invoice.base_amount += invoice_line.base_amount
-            invoice.vat_amount += invoice_line.vat_amount
-            invoice.total_amount += invoice_line.total_amount
-            invoice.balance += invoice_line.total_amount
-
-            invoice_lines.append(invoice_line)
-            invoice_line_id += 1
-
-        # Update amounts on the contract (update method on all contracts at once might be faster)
-        self.base_amount += invoice.base_amount
-        self.vat_amount += invoice.vat_amount
-        self.total_amount += invoice.total_amount
-        self.balance += invoice.balance
-
-        # Update next invoicing date on the contract
-        month = self.next_date_prolong.month
-        if self.invoicing_period == self.MONTH:
-            month += 1
-        elif self.invoicing_period == self.QUARTER:
-            month += 3
-        elif self.invoicing_period == self.HALF_YEAR:
-            month += 6
-        elif self.invoicing_period == self.YEAR:
-            self.next_date_prolong.replace(year=self.next_date_prolong.year + 1)
-
-        if month > 12:
-            self.next_date_prolong.replace(
-                month=month % 12,
-                year=self.next_date_prolong.year + 1
-            )
-        else:
-            self.next_date_prolong.replace(month=month)
-
-        self.clean()
-        self.save()
-
-        return invoice, invoice_lines, invoice_line_id
-
-    # class Meta:
-    #     constraints = [
-    #         CheckConstraint(
-    #             # If we have a custom invoicing period, then amount of days must be specified, and start day must not.
-    #             # If we have a set invoicing period, then start day must be specified, and amount of days must not.
-    #             name='check_period',
-    #             check=Q(invoicing_period='V')
-    #             & Q(invoicing_amount_of_days__isnull=False)
-    #             & Q(invoicing_start_day__isnull=True)
-    #
-    #             | (Q(invoicing_period='M')
-    #                 | Q(invoicing_period='Q')
-    #                 | Q(invoicing_period='H')
-    #                 | Q(invoicing_period='Y')
-    #                )
-    #             & Q(invoicing_amount_of_days__isnull=True)
-    #             & Q(invoicing_start_day__isnull=False)
-    #         ),
-    #     ]
 
 
 class Component(TenancyDependentModel):
@@ -373,8 +356,8 @@ class Component(TenancyDependentModel):
     def __str__(self):
         return "Component: " + self.description
 
-    def create_invoice_line(self, invoice, invoice_line_id):
-        return InvoiceLine(
+    def create_invoice_line(self, invoice, contract, invoice_line_id):
+        invoice_line = InvoiceLine(
             invoice_line_id=invoice_line_id,
             component=self,
             invoice=invoice,
@@ -384,16 +367,24 @@ class Component(TenancyDependentModel):
             total_amount=self.total_amount,
             vat_type=self.vat_rate.type,
 
-            general_ledger_account=self.contract.contract_type.general_ledger_credit,
+            general_ledger_account=contract.contract_type.general_ledger_credit,
             general_ledger_dimension_base_component=self.base_component.general_ledger_dimension,
-            general_ledger_dimension_contract_1=self.contract.general_ledger_dimension_contract_1,
-            general_ledger_dimension_contract_2=self.contract.general_ledger_dimension_contract_2,
+            general_ledger_dimension_contract_1=contract.general_ledger_dimension_contract_1,
+            general_ledger_dimension_contract_2=contract.general_ledger_dimension_contract_2,
             general_ledger_dimension_vat=self.vat_rate.general_ledger_dimension,
 
             number_of_units=self.number_of_units,
             unit_price=self.unit_amount,
             unit_id=self.unit_id
         )
+
+        # Update amounts on the invoice
+        invoice.base_amount += invoice_line.base_amount
+        invoice.vat_amount += invoice_line.vat_amount
+        invoice.total_amount += invoice_line.total_amount
+        invoice.balance += invoice_line.total_amount
+
+        return invoice_line
 
 
 class ContractPerson(TenancyDependentModel):
