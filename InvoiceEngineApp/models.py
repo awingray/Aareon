@@ -517,10 +517,14 @@ general_ledger_dimension_contract_2 = models.CharField(max_length=10)
 class Collection(models.Models):
 
     collection_id = models.AutoField(primary_key=True)
-    contractperson = models.ForeignKey(
-        ContractPerson, on_delete=models.CASCADE)
+    contractperson = models.ForeignKey(ContractPerson, on_delete=models.CASCADE)
     payment_method = models.CharField(max_length=1)
     payment_day = models.DateField()
-    iban = models.CharField(max_length=10)
     mandate =
+        payment_method = models.CharField(
+        max_length=1,
+        choices=PAYMENT_METHOD_CHOICES,
+        default=INVOICE
+    )
+    iban = models.CharField(max_length=17)
     amount = models.FloatField()
