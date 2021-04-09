@@ -16,6 +16,7 @@ class ParentListView(LoginRequiredMixin, ListView):
     """This class defines common methods of ListViews used in this project."""
     # Redirect to the login page if the user is not logged in.
     login_url = '/login/'
+    paginate_by = 10
 
     def filter_by_tenancy(self, qs_to_filter):
         """Filter the full queryset by tenancy.  This method also makes sure that someone without access to the tenancy

@@ -42,7 +42,7 @@ class VATRateForm(forms.ModelForm):
         cleaned_data = super().clean()
         start_date = cleaned_data.get("start_date")
         end_date = cleaned_data.get("end_date")
-        if end_date < start_date:
+        if end_date and end_date < start_date:
             raise forms.ValidationError("End date should be greater than start date.")
 
     class Meta:
@@ -59,6 +59,7 @@ class ContractForm(forms.ModelForm):
 
     def finalize_creation(self, view_object):
         self.instance.tenancy = view_object.tenancy
+        self.instance.next_date_prolong = self.instance.start_date
 
         self.instance.tenancy.number_of_contracts += 1
         self.instance.tenancy.clean()
@@ -66,7 +67,9 @@ class ContractForm(forms.ModelForm):
 
     class Meta:
         model = models.Contract
-        exclude = ['tenancy', 'invoicing_amount_type', 'balance', 'base_amount', 'vat_amount', 'total_amount']
+        exclude = ['tenancy', 'invoicing_amount_type', 'next_date_prolong',
+                   'balance', 'base_amount', 'vat_amount', 'total_amount'
+                   ]
 
 
 class ComponentForm(forms.ModelForm):
@@ -75,21 +78,34 @@ class ComponentForm(forms.ModelForm):
         self.fields['base_component'].queryset = models.BaseComponent.objects.filter(tenancy=tenancy)
         self.fields['vat_rate'].queryset = models.VATRate.objects.filter(tenancy=tenancy)
 
+    def clean(self):
+        super().clean()
+        # Implement checking whether base amount and unit amount are mutually exclusive:
+        # Either specify base_amount OR unit_id, unit_amount, & number_of_units
+
     def finalize_creation(self, view_object):
         self.instance.tenancy = view_object.tenancy
-        self.instance.contract = get_object_or_404(
+        contract = get_object_or_404(
             models.Contract,
             contract_id=view_object.kwargs.get('contract_id')
         )
+        self.instance.contract = contract
+        self.instance.next_date_prolong = contract.next_date_prolong
         self.finalize_update()
 
     def finalize_update(self):
-        self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
-        self.instance.total_amount = self.instance.base_amount + self.instance.vat_amount
+        # Base amount and unit amount are mutually exclusive.  This is handled in clean()
+        if self.instance.base_amount and not self.instance.unit_amount:
+            self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
+            self.instance.total_amount = self.instance.base_amount + self.instance.vat_amount
+        elif self.instance.unit_amount and not self.instance.base_amount:
+            amount = self.instance.number_of_units * self.instance.unit_amount
+            self.instance.vat_amount = amount * self.instance.vat_rate.percentage / 100
+            self.instance.total_amount = amount + self.instance.vat_amount
 
     class Meta:
         model = models.Component
-        exclude = ['contract', 'vat_amount', 'total_amount', 'tenancy']
+        exclude = ['contract', 'vat_amount', 'total_amount', 'tenancy', 'next_date_prolong']
 
 
 class ContractPersonForm(forms.ModelForm):
