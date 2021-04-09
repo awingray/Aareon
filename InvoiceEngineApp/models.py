@@ -16,8 +16,7 @@ class Tenancy(models.Model):
     number_of_contracts = models.PositiveIntegerField(default=0)
     last_invoice_number = models.PositiveIntegerField(default=0)
     day_next_prolong = models.DateField()
-    days_until_invoice_expiration = models.PositiveSmallIntegerField(
-        default=14)
+    days_until_invoice_expiration = models.PositiveSmallIntegerField(default=14)
 
     def __str__(self):
         return self.name
@@ -37,11 +36,9 @@ class Tenancy(models.Model):
         next_invoice_line_id = 0
 
         if Invoice.objects.exists():
-            next_invoice_id = Invoice.objects.aggregate(
-                models.Max('invoice_id')).get('invoice_id__max') + 1
+            next_invoice_id = Invoice.objects.aggregate(models.Max('invoice_id')).get('invoice_id__max') + 1
             next_invoice_line_id = \
-                InvoiceLine.objects.aggregate(models.Max(
-                    'invoice_line_id')).get('invoice_line_id__max') + 1
+                InvoiceLine.objects.aggregate(models.Max('invoice_line_id')).get('invoice_line_id__max') + 1
 
         # Load all information about contracts that should be invoiced today or before today into memory
         contracts = list(
@@ -256,10 +253,6 @@ class Contract(TenancyDependentModel):
     external_customer_id = models.PositiveIntegerField()
 
     contract_type = models.ForeignKey(ContractType, on_delete=models.CASCADE)  # Ask if this should cascade
-=======
-    contract_type = models.ForeignKey(
-        ContractType, on_delete=models.CASCADE)  # Ask if this should cascade
->>>>>>> Stashed changes
     status = models.CharField(max_length=1)
     invoicing_period = models.CharField(
         max_length=1,
@@ -272,10 +265,8 @@ class Contract(TenancyDependentModel):
         default=PER_PERIOD
     )
     # Only not null if invoicing_type = PER_DAY
-    invoicing_amount_of_days = models.PositiveSmallIntegerField(
-        null=True, blank=True)
+    invoicing_amount_of_days = models.PositiveSmallIntegerField(null=True, blank=True)
     # Only null if invoicing_type = PER_DAY
-<<<<<<< Updated upstream
     invoicing_start_day = models.PositiveSmallIntegerField(null=True, blank=True)
 
     # Dates
@@ -347,12 +338,9 @@ class Contract(TenancyDependentModel):
 class Component(TenancyDependentModel):
     """A Contract is built up of one or more components.  These 'contract lines' specify the amounts and services."""
     component_id = models.AutoField(primary_key=True)
-    # Ask if this should cascade
-    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
-    base_component = models.ForeignKey(
-        BaseComponent, on_delete=models.CASCADE)  # Ask if this should cascade
-    # Ask if this should cascade
-    vat_rate = models.ForeignKey(VATRate, on_delete=models.CASCADE)
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)  # Ask if this should cascade
+    base_component = models.ForeignKey(BaseComponent, on_delete=models.CASCADE)  # Ask if this should cascade
+    vat_rate = models.ForeignKey(VATRate, on_delete=models.CASCADE)  # Ask if this should cascade
     description = models.CharField(max_length=50)
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
@@ -416,8 +404,7 @@ class ContractPerson(TenancyDependentModel):
     ]
 
     contract_person_id = models.AutoField(primary_key=True)
-    # Ask if this should cascade
-    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)  # Ask if this should cascade
     type = models.CharField(max_length=1)
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
@@ -477,12 +464,6 @@ class InvoiceLine(models.Model):
     invoice_line_id = models.AutoField(primary_key=True)
     component = models.ForeignKey(Component, on_delete=models.CASCADE)  # Ask if this should cascade
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)  # Ask if this should cascade
-=======
-    component = models.OneToOneField(
-        Component, on_delete=models.CASCADE)  # Ask if this should cascade
-    # Ask if this should cascade
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
->>>>>>> Stashed changes
     description = models.CharField(max_length=50)
     vat_type = models.PositiveIntegerField()
     base_amount = models.FloatField(null=True)
@@ -496,7 +477,3 @@ class InvoiceLine(models.Model):
     unit_price = models.FloatField(null=True)
     unit_id = models.CharField(max_length=10, null=True)
     number_of_units = models.FloatField(null=True)
-
-
-
->>>>>>> Stashed changes
