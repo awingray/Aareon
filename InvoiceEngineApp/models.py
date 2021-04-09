@@ -509,3 +509,19 @@ class InvoiceLine(models.Model):
     unit_price = models.FloatField(null=True)
     unit_id = models.CharField(max_length=10, null=True)
     number_of_units = models.FloatField(null=True)
+
+class Collection(models.Models):
+
+    collection_id = models.AutoField(primary_key=True)
+    contractperson = models.ForeignKey(ContractPerson, on_delete=models.CASCADE)
+    payment_method = models.CharField(max_length=1)
+    payment_day = models.DateField()
+    mandate =
+        payment_method = models.CharField(
+        max_length=1,
+        choices=PAYMENT_METHOD_CHOICES,
+        default=INVOICE
+    )
+    iban = models.CharField(max_length=17)
+    amount = models.FloatField()
+
