@@ -32,8 +32,8 @@ class Tenancy(models.Model):
 
     def invoice_contracts(self):
         # Set the id for the next invoice. Take the highest id that is currently in the database and increment by 1
-        next_invoice_id = 0
-        next_invoice_line_id = 0
+        next_invoice_id = 1
+        next_invoice_line_id = 1
 
         if Invoice.objects.exists():
             next_invoice_id = Invoice.objects.aggregate(models.Max('invoice_id')).get('invoice_id__max') + 1
@@ -367,7 +367,7 @@ class Component(TenancyDependentModel):
             total_amount=self.total_amount,
             vat_type=self.vat_rate.type,
 
-            general_ledger_account=contract.contract_type.general_ledger_credit,
+            general_ledger_account=self.base_component.general_ledger_credit,
             general_ledger_dimension_base_component=self.base_component.general_ledger_dimension,
             general_ledger_dimension_contract_1=contract.general_ledger_dimension_contract_1,
             general_ledger_dimension_contract_2=contract.general_ledger_dimension_contract_2,
