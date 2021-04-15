@@ -98,10 +98,19 @@ class ComponentForm(forms.ModelForm):
         if self.instance.base_amount and not self.instance.unit_amount:
             self.instance.vat_amount = self.instance.base_amount * self.instance.vat_rate.percentage / 100
             self.instance.total_amount = self.instance.base_amount + self.instance.vat_amount
+            # Update contract base amount
+            self.instance.contract.base_amount += self.instance.base_amount
         elif self.instance.unit_amount and not self.instance.base_amount:
             amount = self.instance.number_of_units * self.instance.unit_amount
             self.instance.vat_amount = amount * self.instance.vat_rate.percentage / 100
             self.instance.total_amount = amount + self.instance.vat_amount
+            # Update contract base amount
+            self.instance.contract.base_amount += amount
+
+        # Update contract total and VAT, then save contract
+        self.instance.contract.total_amount += self.instance.total_amount
+        self.instance.contract.vat_amount += self.instance.vat_amount
+        self.instance.contract.save()
 
     class Meta:
         model = models.Component
