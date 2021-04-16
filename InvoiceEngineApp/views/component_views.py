@@ -1,3 +1,4 @@
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 from InvoiceEngineApp.forms import ComponentForm
@@ -36,9 +37,9 @@ class ComponentUpdateView(ParentUpdateView):
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
-        qs = queryset.filter(component_id=component_id).select_related('contract')
+        qs = queryset.filter(component_id=component_id)
         qs = super().filter_by_tenancy(qs)
-        component = get_object_or_404(qs)
+        component = get_object_or_404(qs.select_related('contract'))
 
         # Remove the amounts of this component from the contract to later add updated values
         # Do not save the contract until the update is complete
@@ -72,4 +73,15 @@ class ComponentDeleteView(ParentDeleteView):
         component_id = self.kwargs.get('component_id')
         qs = queryset.filter(component_id=component_id)
         qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+        return get_object_or_404(qs.select_related('contract'))
+
+    def delete(self, request, *args, **kwargs):
+        component = self.get_object()
+
+        component.contract.total_amount -= component.total_amount
+        component.contract.vat_amount -= component.vat_amount
+        component.contract.base_amount -= component.base_amount
+
+        component.contract.save()
+        component.delete()
+        return HttpResponseRedirect(self.get_success_url())
