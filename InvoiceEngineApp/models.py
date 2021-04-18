@@ -510,7 +510,7 @@ class InvoiceLine(models.Model):
     unit_id = models.CharField(max_length=10, null=True)
     number_of_units = models.FloatField(null=True)
 
-class Collection(models.Models):
+class Collection(models.Model):
 
     collection_id = models.AutoField(primary_key=True)
     contractperson = models.ForeignKey(ContractPerson, on_delete=models.CASCADE)
