@@ -7,7 +7,8 @@ from InvoiceEngineApp.models import (
     BaseComponent,
     Contract,
     Component,
-    Invoice
+    Invoice,
+    ContractPerson
 )
 
 
@@ -17,14 +18,15 @@ def generate_benchmark_data(max_components):
     # 4 VAT rates
     # 10 contract types
     # 24 base components
-    # 100 000 contracts with 1 - 10 contract lines each
+    # 100 000 contracts with 1 - max_components contract lines each & 1 - 2 contract persons
     start_time = datetime.datetime.now()
     print("started populating db at " + start_time.__str__())
 
     amount_of_contract_types = 10
     amount_of_base_components = 24
     amount_of_vat_rates = 4
-    amount_of_contracts = 100000
+    amount_of_contracts = 20000
+    max_contract_persons = 2
 
     tenancy = Tenancy.objects.create(
         tenancy_id=113582,
@@ -77,11 +79,14 @@ def generate_benchmark_data(max_components):
 
     contracts = []
     components = []
+    contract_persons = []
     total_components = 0
+    total_contract_persons = 0
     for i in range(amount_of_contracts):
         if i % 1000 == 0:
             print("contract " + i.__str__())
         amount_of_components = random.randint(1, max_components)
+        amount_of_contract_persons = random.randint(1, max_contract_persons)
         contract = Contract(
             contract_id=i,
             tenancy=tenancy,
@@ -117,14 +122,41 @@ def generate_benchmark_data(max_components):
                 total_amount=total_amount,
             )
 
+            contract.total_amount += total_amount
+            contract.base_amount += base_amount
+            contract.vat_amount += vat_amount
+
             components.append(component)
             total_components += 1
 
+        for k in range(amount_of_contract_persons):
+            contract_person = ContractPerson(
+                contract_person_id=total_contract_persons,
+                tenancy=tenancy,
+                contract=contract,
+                type='P',
+                start_date=datetime.date(2017, 5, 5),
+                name='A. Lee',
+                address='Nijenborgh 4',
+                city='Groningen',
+                payment_method=ContractPerson.DIRECT_DEBIT,
+                iban='INGB 55598875',
+                mandate=555884,
+                email='random@randommail.org',
+                percentage_of_total=100/amount_of_contract_persons,
+                payment_day=5
+            )
+            contract_persons.append(contract_person)
+            total_contract_persons += 1
+
         contracts.append(contract)
 
-    print("start adding contracts & components to db")
+    print("start adding contracts & components & contract persons to db")
     Contract.objects.bulk_create(contracts)
+    print("Contracts done, starting components")
     Component.objects.bulk_create(components)
+    print("components done, starting contract persons")
+    ContractPerson.objects.bulk_create(contract_persons)
     print("done")
 
     end_time = datetime.datetime.now()
