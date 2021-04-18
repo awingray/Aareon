@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.conf import settings
 import datetime
-from InvoiceEngineApp.models import Tenancy, VATRate, ContractType
+from InvoiceEngineApp.models import *
 from model_bakery import baker
 
 
@@ -39,3 +39,21 @@ class ContractTypeTest(TestCase):
     def test_creation(self):
         print(self.contracttype.get_details())
         self.assertEqual(ContractType.objects.all().count(), 1)
+
+
+class ContractTest(TestCase):
+    def setUp(self):
+        self.contract = baker.make(Contract)
+
+    def test_creation(self):
+        print(self.contract.get_details())
+        self.assertEqual(ContractType.objects.all().count(), 1)
+
+
+class BaseComponentTest(TestCase):
+    def setUp(self):
+        self.base_component = baker.make(BaseComponent)
+
+    def test_creation(self):
+        print(self.base_component.get_details())
+        self.assertEqual(BaseComponent.objects.all().count(), 1)
