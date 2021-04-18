@@ -25,7 +25,7 @@ def generate_benchmark_data(max_components):
     amount_of_contract_types = 10
     amount_of_base_components = 24
     amount_of_vat_rates = 4
-    amount_of_contracts = 100000
+    amount_of_contracts = 20000
     max_contract_persons = 2
 
     tenancy = Tenancy.objects.create(
