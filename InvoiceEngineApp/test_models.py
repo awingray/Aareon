@@ -67,7 +67,7 @@ class ComponentTest(TestCase):
         self.component = baker.make(Component)
 
     def test_creation(self):
-        print(self.component.get_details())
+        # print(self.component.get_details())
         self.assertEqual(Component.objects.all().count(), 1)
 
 
@@ -76,8 +76,8 @@ class ContractPersonTest(TestCase):
         self.contract_person = baker.make(ContractPerson)
 
     def test_creation(self):
-        print(self.contract_person.get_details())
-        self.assertEqual(contract_person.objects.all().count(), 1)
+        # print(self.contract_person.get_details())
+        self.assertEqual(ContractPerson.objects.all().count(), 1)
 
 
 class InvoiceTest(TestCase):
@@ -94,5 +94,5 @@ class InvoiceLineTest(TestCase):
         self.invoice_line = baker.make(InvoiceLine)
 
     def test_creation(self):
-        print(self.invoice_line.get_details())
+        # print(self.invoice_line.get_details())
         self.assertEqual(InvoiceLine.objects.all().count(), 1)
