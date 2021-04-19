@@ -16,8 +16,7 @@ class Tenancy(models.Model):
     number_of_contracts = models.PositiveIntegerField(default=0)
     last_invoice_number = models.PositiveIntegerField(default=1)
     day_next_prolong = models.DateField()
-    days_until_invoice_expiration = models.PositiveSmallIntegerField(
-        default=14)
+    days_until_invoice_expiration = models.PositiveSmallIntegerField(default=14)
 
     def __str__(self):
         return self.name
@@ -226,10 +225,10 @@ class BaseComponent(TenancyDependentModel):
     general_ledger_debit = models.CharField(max_length=10)
     general_ledger_credit = models.CharField(max_length=10)
     general_ledger_dimension = models.CharField(max_length=10)
-    unit_id = models.CharField(max_length=10)
+    unit_id = models.CharField(max_length=10, null=True, blank=True)
 
     def __str__(self):
-        return self.tenancy.name + " - " + self.description
+        return self.description + " - unit " + self.unit_id.__str__() if self.unit_id else self.description
 
     def get_details(self):
         """Method to print all fields and their values."""
@@ -259,7 +258,7 @@ class VATRate(TenancyDependentModel):
     general_ledger_dimension = models.CharField(max_length=10)
 
     def __str__(self):
-        return self.tenancy.name + " - " + self.description
+        return "Type " + self.type.__str__() + ": " + self.description + " - " + self.percentage.__str__() + "%"
 
     def get_details(self):
         """Method to print all fields and their values."""
@@ -305,8 +304,7 @@ class Contract(TenancyDependentModel):
     internal_customer_id = models.PositiveIntegerField()
     external_customer_id = models.PositiveIntegerField()
 
-    contract_type = models.ForeignKey(
-        ContractType, on_delete=models.CASCADE)  # Ask if this should cascade
+    contract_type = models.ForeignKey(ContractType, on_delete=models.CASCADE)
     status = models.CharField(max_length=1)
     invoicing_period = models.CharField(
         max_length=1,
@@ -319,8 +317,7 @@ class Contract(TenancyDependentModel):
         default=PER_PERIOD
     )
     # Only not null if invoicing_type = PER_DAY
-    invoicing_amount_of_days = models.PositiveSmallIntegerField(
-        null=True, blank=True)
+    invoicing_amount_of_days = models.PositiveSmallIntegerField(null=True, blank=True)
     # Only null if invoicing_type = PER_DAY
     invoicing_start_day = models.PositiveSmallIntegerField(null=True, blank=True)
 
@@ -414,23 +411,20 @@ class Contract(TenancyDependentModel):
 class Component(TenancyDependentModel):
     """A Contract is built up of one or more components.  These 'contract lines' specify the amounts and services."""
     component_id = models.AutoField(primary_key=True)
-    # Ask if this should cascade
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
-    base_component = models.ForeignKey(
-        BaseComponent, on_delete=models.CASCADE)  # Ask if this should cascade
-    # Ask if this should cascade
+    base_component = models.ForeignKey(BaseComponent, on_delete=models.CASCADE)
     vat_rate = models.ForeignKey(VATRate, on_delete=models.CASCADE)
     description = models.CharField(max_length=50)
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     end_date_prolong = models.DateField(null=True, blank=True)
     next_date_prolong = models.DateField()
-    base_amount = models.FloatField(null=True)
+    base_amount = models.FloatField(null=True, blank=True)
     vat_amount = models.FloatField(default=0.0)
     total_amount = models.FloatField(default=0.0)
-    unit_id = models.CharField(max_length=10, null=True)
-    unit_amount = models.FloatField(null=True)
-    number_of_units = models.FloatField(null=True)
+    unit_id = models.CharField(max_length=10, null=True, blank=True)
+    unit_amount = models.FloatField(null=True, blank=True)
+    number_of_units = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return "Component: " + self.description
@@ -508,7 +502,6 @@ class ContractPerson(TenancyDependentModel):
     ]
 
     contract_person_id = models.AutoField(primary_key=True)
-    # Ask if this should cascade
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
     type = models.CharField(max_length=1)
     start_date = models.DateField()
@@ -521,8 +514,8 @@ class ContractPerson(TenancyDependentModel):
         choices=PAYMENT_METHOD_CHOICES,
         default=INVOICE
     )
-    iban = models.CharField(max_length=17)
-    mandate = models.PositiveIntegerField()
+    iban = models.CharField(max_length=17, null=True, blank=True)
+    mandate = models.PositiveIntegerField(null=True, blank=True)
     email = models.EmailField()
     percentage_of_total = models.PositiveIntegerField()
     payment_day = models.PositiveIntegerField()
@@ -579,9 +572,7 @@ class Invoice(TenancyDependentModel):
 
 class InvoiceLine(models.Model):
     invoice_line_id = models.AutoField(primary_key=True)
-    # Ask if this should cascade
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
-    # Ask if this should cascade
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     description = models.CharField(max_length=50)
     vat_type = models.PositiveIntegerField()
