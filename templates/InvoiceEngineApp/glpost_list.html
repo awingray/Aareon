@@ -1,0 +1,56 @@
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block navbar %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'glpost_create' company_id %}">Create new general ledger post</a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'tenancy_list'%}">Return to tenancy list</a>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="col">
+    <!-- Display objects -->
+    {% for object in page_obj %}
+    <div class="card shadow p-3 mb-5 bg-body rounded" >
+        <div class="card-body">
+            <h5 class="card-title"> {{ object.description }}</h5>
+            <ul class="nav">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{% url 'glpost_details' company_id object.general_ledger_post_id %}">Details</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'glpost_update' company_id object.general_ledger_post_id %}">Update</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'glpost_delete' company_id object.general_ledger_post_id %}">Delete</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    {% empty %}
+    <p>No objects yet</p>
+    {% endfor %}
+
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+
+{% endblock %}
