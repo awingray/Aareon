@@ -22,7 +22,7 @@ test:
     #- docker run invoice-engine_web_1 python manage.py test
     - apk add --no-cache docker-compose
     - docker-compose up -d
-    - docker-compose exec invoice-engine_web_1 python manage.py test
+    - docker-compose exec invoice-engine_web python manage.py test
 
 #image: docker:19.03.12
 #services:
