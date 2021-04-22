@@ -18,12 +18,12 @@ build:
 test:
   stage: test
   script:
-    #- docker pull invoice-engine_web_1
-    #- docker run invoice-engine_web_1 python manage.py test
-    - apk add --no-cache docker-compose
-    - docker-compose up -d
-    - docker ps
-    - docker-compose exec web python manage.py test
+    - docker pull invoice-engine_web
+    - docker run invoice-engine_web python manage.py test
+    #- apk add --no-cache docker-compose
+    #- docker-compose up -d
+    #- docker ps
+    #- docker-compose exec web python manage.py test
 
 #image: docker:19.03.12
 #services:
