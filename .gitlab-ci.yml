@@ -1,12 +1,27 @@
 image: docker
+
 services:
   - docker:dind    
+  
+stages:
+  - build
+  - test
+  - release
+  - deploy
+
 build:
+  stage: build
   script:
     - apk add --no-cache docker-compose
     - docker-compose build
     - docker-compose up -d
-    
+
+test:
+  stage: test
+  script:
+    - docker pull invoice-engine_web_1
+    - docker run invoice-engine_web_1 python manage.py test
+
 #image: docker:19.03.12
 #services:
 #  - docker:19.03.12-dind
