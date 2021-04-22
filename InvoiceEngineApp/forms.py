@@ -164,7 +164,7 @@ class ContractPersonForm(forms.ModelForm):
         iban = cleaned_data.get("iban")
         mandate = cleaned_data.get("mandate")
 
-        if payment_method == self.model.DIRECT_DEBIT:
+        if payment_method == self.instance.DIRECT_DEBIT:
             if not iban or not mandate:
                 raise forms.ValidationError("Please provide an iban and a mandate.")
 
