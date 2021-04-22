@@ -20,7 +20,7 @@ class TenancyTest(TestCase):
         self.assertEqual(Tenancy.objects.all().count(), 1)
         self.assertEqual(self.tenancy.days_until_invoice_expiration, 14)
         self.assertEqual(self.tenancy.number_of_contracts, 0)
-        self.assertEqual(self.tenancy.last_invoice_number, 0)
+        self.assertEqual(self.tenancy.last_invoice_number, 1)
 
     def test_invoice_contracts(self):
         pass
