@@ -25,13 +25,12 @@ build:
   script:
     - docker-compose up -d
     - docker-compose push
-    - docker-compose ls
+    - docker-compose top
 
 test:
   stage: test
   script:
     - docker-compose up -d
-    - docker-compose ls
     - docker-compose exec web python manage.py test
 
 #image: docker:19.03.12
