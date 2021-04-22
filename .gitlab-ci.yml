@@ -4,6 +4,7 @@ services:
 build:
   script:
     - apk add --no-cache docker-compose
+    - docker-compose build
     - docker-compose up -d
     
 #image: docker:19.03.12
