@@ -31,7 +31,7 @@ test:
   stage: test
   script:
     - docker-compose up -d
-    - docker-compose exec web python manage.py test
+    - docker-compose exec -T web python manage.py test
 
 #image: docker:19.03.12
 #services:
