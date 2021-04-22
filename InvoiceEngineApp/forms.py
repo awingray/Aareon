@@ -81,7 +81,7 @@ class ComponentForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         base_amount = cleaned_data.get("base_amount")
-        unit_id = cleaned_data.get("unit_id")
+        unit_id = cleaned_data.get("base_component").unit_id
         unit_amount = cleaned_data.get("unit_amount")
         number_of_units = cleaned_data.get("number_of_units")
 
