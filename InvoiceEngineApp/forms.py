@@ -121,6 +121,12 @@ class ContractPersonForm(forms.ModelForm):
             contract_id=view_object.kwargs.get('contract_id')
         )
 
+    def clean(self):
+        cleaned_data = super().clean()
+        dat = cleaned_data.get("percentage_of_total")
+        if self.instance.contract.validate() + dat > 100:
+            raise forms.ValidationError('exceeding %')
+
     class Meta:
         model = models.ContractPerson
         exclude = ['contract', 'tenancy']
