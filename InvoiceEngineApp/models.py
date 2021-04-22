@@ -421,6 +421,12 @@ class Contract(TenancyDependentModel):
 
         return invoice, general_ledger_post
 
+    def validate(self):
+        if ContractPerson.objects.exists():
+            sum = self.contractperson_set.aggregate(
+                models.Sum('percentage_of_total'))
+        return (sum.get('percentage_of_total__sum') <= 100)
+
 
 class Component(TenancyDependentModel):
     """A Contract is built up of one or more components.  These 'contract lines' specify the amounts and services."""
@@ -552,22 +558,6 @@ class ContractPerson(TenancyDependentModel):
             iban=self.iban,
             amount=(self.percentage_of_total / 100) * invoice.total_amount
         )
-
-    def validate(self):
-        if ContractPerson.objects.exists():
-            sum = ContractPerson.objects.aggregate(
-                models.Sum('percentage_of_total'))
-
-        return (sum['percentage_of_total__sum'] <= 100)
-
-
-""" 
-        for contractpersoners in contract:
-
-
-sum + contractperons[contract]
-
-sum == 100 """
 
 
 class Invoice(TenancyDependentModel):
