@@ -422,10 +422,10 @@ class Contract(TenancyDependentModel):
         return invoice, general_ledger_post
 
     def validate(self):
-        if ContractPerson.objects.exists():
+        if self.contractperson_set.exists():
             sum = self.contractperson_set.aggregate(
                 models.Sum('percentage_of_total'))
-        return (sum.get('percentage_of_total__sum') <= 100)
+        return sum.get('percentage_of_total__sum')
 
 
 class Component(TenancyDependentModel):

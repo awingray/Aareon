@@ -58,7 +58,7 @@ class ContractTest(TestCase):
         self.contract = baker.make(Contract)
 
     def test_creation(self):
-        # print(self.contract.get_details())
+        print()
         self.assertEqual(Contract.objects.all().count(), 1)
 
 
@@ -76,8 +76,6 @@ class ContractPersonTest(TestCase):
         self.contract_person = baker.make(ContractPerson, _quantity=3)
 
     def test_creation(self):
-        # self.contract_person.validate()
-        print(self.contract_person[0].validate())
         self.assertEqual(ContractPerson.objects.all().count(), 3)
 
 
