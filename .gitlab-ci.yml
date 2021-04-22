@@ -29,8 +29,8 @@ build:
 test:
   stage: test
   script:
-    - docker pull invoice-engine_web
-    - docker run invoice-engine_web python manage.py test
+    - docker pull $CONTAINER_TEST_IMAGE
+    - docker run $CONTAINER_TEST_IMAGE python manage.py test
     #- apk add --no-cache docker-compose
     #- docker-compose up -d
     #- docker ps
