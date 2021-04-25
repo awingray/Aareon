@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 
 from InvoiceEngineApp.forms import ContractPersonForm
-from InvoiceEngineApp.models import ContractPerson
+from InvoiceEngineApp.models import ContractPerson, Contract
 from InvoiceEngineApp.views.parent_views import (
     ParentCreateView,
     ParentUpdateView,
@@ -17,6 +17,20 @@ class ContractPersonCreateView(ParentCreateView):
         super().__init__()
         self.object_type = "contract person"
         self.list_page = "contract_list"
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handle POST requests: instantiate a form instance with the passed
+        POST variables, set the tenancy and the contract, and then check if it's valid.
+        """
+        self.object = None
+
+        form = self.get_form()
+        form.set_dependencies(self.tenancy, self.kwargs.get('contract_id'))
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
 
 
 class ContractPersonUpdateView(ParentUpdateView):
