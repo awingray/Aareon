@@ -19,6 +19,7 @@ class TenancyListView(ListView):
     """Show the user a list of all tenancies available to them."""
     template_name = 'InvoiceEngineApp/tenancy_list.html'
     model = Tenancy
+    paginate_by = 10
 
     def invoice_contracts(self, company_id):
         # This function is for testing the invoice engine!

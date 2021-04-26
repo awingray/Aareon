@@ -13,7 +13,7 @@
 {% block content %}
     <div class="col">
         <!-- Display objects -->
-        {% for object in object_list %}
+        {% for object in page_obj %}
             <div class="card shadow p-3 mb-5 bg-body rounded" >
                 <div class="card-body">
                     <h5 class="card-title"> {{ object.description }}</h5>
