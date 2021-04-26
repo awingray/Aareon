@@ -16,7 +16,7 @@ class TenancyTest(TestCase):
     def test_creation(self):
         # print(self.tenancy.get_details())
         self.assertEqual(self.name, str(self.tenancy))
-        self.assertEqual(datetime.date.today(), self.tenancy.day_next_prolong)
+        self.assertIsNone(self.tenancy.day_next_prolong)
         self.assertEqual(Tenancy.objects.all().count(), 1)
         self.assertEqual(self.tenancy.days_until_invoice_expiration, 14)
         self.assertEqual(self.tenancy.number_of_contracts, 0)
