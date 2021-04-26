@@ -12,29 +12,31 @@
 
 {% block content %}
     <div class="container">
+        {# Table header #}
         <div class="row">
             <div class="col-lg-4">
-                <h5 class="header" style="padding-left: 20px">Description</h5>
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Description</h5>
             </div>
-            <div class="col-sm-1 text-center">
-                <h5 class="header">Type</h5>
+            <div class="col-sm-1 text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Type</h5>
             </div>
-            <div class="col text-center">
-                <h5 class="header">Start date</h5>
+            <div class="col text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
             </div>
-            <div class="col text-center">
-                <h5 class="header">End date</h5>
+            <div class="col text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
             </div>
-            <div class="col text-center">
-                <h5 class="header">General ledger account</h5>
+            <div class="col text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger account</h5>
             </div>
-            <div class="col text-center">
-                <h5 class="header">General ledger dimension</h5>
+            <div class="col text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger dimension</h5>
             </div>
+            {# Empty column header for update & delete links #}
             <div class="col"></div>
         </div>
 
-
+        {# Table contents #}
         {% for object in page_obj %}
             <div class="card shadow p-1 mb-2 bg-body rounded">
                 <div class="card-body">
@@ -42,19 +44,19 @@
                         <div class="col-lg-4">
                             <h5 class="card-title"> {{ object.description }}: {{ object.percentage }}%</h5>
                         </div>
-                        <div class="col-sm-1 text-center">
+                        <div class="col-sm-1 text-left">
                             <p>{{ object.type }}</p>
                         </div>
-                        <div class="col text-center">
+                        <div class="col text-left">
                             <p>{{ object.start_date }}</p>
                         </div>
-                        <div class="col text-center">
+                        <div class="col text-left">
                             <p>{{ object.end_date }}</p>
                         </div>
-                        <div class="col text-center">
+                        <div class="col text-left">
                             <p>{{ object.general_ledger_account }}</p>
                         </div>
-                        <div class="col text-center">
+                        <div class="col text-left">
                             <p>{{ object.general_ledger_dimension }}</p>
                         </div>
                         {# Update and delete links #}
