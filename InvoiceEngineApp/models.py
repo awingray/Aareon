@@ -15,7 +15,7 @@ class Tenancy(models.Model):
     name = models.CharField(max_length=30)
     number_of_contracts = models.PositiveIntegerField(default=0)
     last_invoice_number = models.PositiveIntegerField(default=1)
-    day_next_prolong = models.DateField()
+    day_next_prolong = models.DateField(null=True, blank=True)
     days_until_invoice_expiration = models.PositiveSmallIntegerField(default=14)
 
     def __str__(self):

@@ -1,13 +1,7 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block navbar %}
-    {% if perms.auth.add_user %}
 
-    {% endif %}
-
-    {% if perms.InvoiceEngineApp.add_tenancy %}
-        <a class="nav-link" href="{% url 'tenancy_create' %}">Create new tenancy</a>
-    {% endif %}
 {% endblock %}
 
 {% block content %}

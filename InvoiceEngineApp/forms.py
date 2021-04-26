@@ -4,13 +4,20 @@ from django.shortcuts import get_object_or_404
 from InvoiceEngineApp import models
 
 
-class TenancyForm(forms.ModelForm):
+class TenancyAdministratorForm(forms.ModelForm):
     """A form for the administrator to create a new tenancy.
     number_of_contracts and last_invoice_number are derived and should not be changed by users.
     """
     class Meta:
         model = models.Tenancy
-        exclude = ['number_of_contracts', 'last_invoice_number']
+        exclude = ['number_of_contracts', 'last_invoice_number', 'days_until_invoice_expiration', 'day_next_prolong']
+
+
+class TenancySubscriberForm(forms.ModelForm):
+    """A form for the user to update a tenancy."""
+    class Meta:
+        model = models.Tenancy
+        exclude = ['tenancy_id', 'name', 'number_of_contracts', 'last_invoice_number']
 
 
 class ContractTypeForm(forms.ModelForm):

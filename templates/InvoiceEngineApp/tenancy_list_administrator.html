@@ -1,7 +1,7 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block navbar %}
-
+    <a class="nav-link" href="{% url 'tenancy_create' %}">Create new tenancy</a>
 {% endblock %}
 
 {% block content %}
@@ -11,27 +11,9 @@
             <div class="card shadow p-3 mb-5 bg-body rounded" >
                 <div class="card-body">
                     <h5 class="card-title"> {{ object.name }}</h5>
-                    <ul class="nav">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'contract_type_list' object.company_id %}">Contract types</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'base_component_list' object.company_id %}">Base components</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'vat_rate_list' object.company_id %}">VAT rates</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'contract_list' object.company_id %}">Contracts</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'invoice_list' object.company_id %}">Invoices</a>
-                        </li>
-                    </ul>
                     <a class="btn btn-primary" href="{% url 'tenancy_details' object.company_id %}">Details</a>
                     <a class="btn btn-primary"href="{% url 'tenancy_update' object.company_id %}">Update</a>
-                    {# This is for testing the invoice engine #}
-                    <a class="btn btn-dark" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
+                    <a class="btn btn-primary"href="{% url 'tenancy_delete' object.company_id %}">Delete</a>
                 </div>
             </div>
         {% empty %}
