@@ -2,58 +2,62 @@
 
 {% block navbar %}
 
-<li class="nav-item">
-    <a class="nav-link" href="{% url 'tenancy_create' %}">Create new tenancy</a>
-
-</li>
 {% endblock %}
 
 {% block content %}
-
-<div class="col">
-
-  <!-- Display objects -->
-  {% for object in object_list %}
-
-  <div class="card shadow p-3 mb-5 bg-body rounded" >
-    <div class="card-body">
-      <h5 class="card-title"> {{ object.name }}</h5>
-      <ul class="nav">
-        <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="#">Tenancy</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'contract_type_list' object.company_id %}">Contract types</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'base_component_list' object.company_id %}">Base components</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'vat_rate_list' object.company_id %}">VAT rates</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'contract_list' object.company_id %}">Contracts</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'invoice_list' object.company_id %}">Invoices</a>
-        </li>
-      </ul>
-      <a class="btn btn-primary" href="{% url 'tenancy_details' object.company_id %}">Details</a>
-
-      <a class="btn btn-primary"href="{% url 'tenancy_update' object.company_id %}">Update</a>
-      <a class="btn btn-primary"href="{% url 'tenancy_delete' object.company_id %}">Delete</a>
-
-      {#            This is for testing the invoice engine#}
-      <a class="btn btn-dark" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
-
+    <div class="col">
+        <!-- Display objects -->
+        {% for object in page_obj %}
+            <div class="card shadow p-3 mb-5 bg-body rounded" >
+                <div class="card-body">
+                    <h5 class="card-title"> {{ object.name }}</h5>
+                    <ul class="nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="#">Tenancy</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'contract_type_list' object.company_id %}">Contract types</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'base_component_list' object.company_id %}">Base components</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'vat_rate_list' object.company_id %}">VAT rates</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'contract_list' object.company_id %}">Contracts</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'invoice_list' object.company_id %}">Invoices</a>
+                        </li>
+                    </ul>
+                    <a class="btn btn-primary" href="{% url 'tenancy_details' object.company_id %}">Details</a>
+                    <a class="btn btn-primary"href="{% url 'tenancy_update' object.company_id %}">Update</a>
+                    <a class="btn btn-primary"href="{% url 'tenancy_delete' object.company_id %}">Delete</a>
+                    {# This is for testing the invoice engine #}
+                    <a class="btn btn-dark" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
+                </div>
+            </div>
+        {% empty %}
+            <p>No objects yet</p>
+        {% endfor %}
     </div>
-  </div>
-  {% empty %}
-  <p>No objects yet</p>
-  {% endfor %}
 
-</div>
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
 
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
 
-
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
 {% endblock %}

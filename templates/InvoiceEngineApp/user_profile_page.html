@@ -1,17 +1,22 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
+{% block navbar %}
+    {% if perms.auth.add_user %}
+
+    {% endif %}
+
+    {% if perms.InvoiceEngineApp.add_tenancy %}
+        <a class="nav-link" href="{% url 'tenancy_create' %}">Create new tenancy</a>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
-<div class="col">
-
-  <div class="card shadow p-3 mb-5 bg-body rounded">
-    <div class="card-body">
-    <p style="text-align: center;margin: auto">I am a profile page</p>
-
-    <p style="text-align: center;margin: auto"><a href="{% url 'tenancy_list' %}" class="btn btn-primary" role="button">Available Tenancies</a></p>
-
-
+    <div class="col">
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <p style="text-align: center;margin: auto">I am a profile page</p>
+                <p style="text-align: center;margin: auto"><a href="{% url 'tenancy_list' %}" class="btn btn-primary" role="button">Available Tenancies</a></p>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-
 {% endblock %}

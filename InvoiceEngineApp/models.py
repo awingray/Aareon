@@ -310,7 +310,6 @@ class Contract(TenancyDependentModel):
 
     # Model fields
     contract_id = models.AutoField(primary_key=True)
-    internal_customer_id = models.PositiveIntegerField()
     external_customer_id = models.PositiveIntegerField()
 
     contract_type = models.ForeignKey(ContractType, on_delete=models.CASCADE)
@@ -365,7 +364,6 @@ class Contract(TenancyDependentModel):
                 'invoicing amount type': self.invoicing_amount_type,
                 'invoicing amount of days': self.invoicing_amount_of_days,
                 'invoicing start day': self.invoicing_start_day,
-                'internal customer id': self.internal_customer_id,
                 'external customer id': self.external_customer_id,
                 'start date': self.start_date,
                 'end date': self.end_date,
@@ -388,7 +386,6 @@ class Contract(TenancyDependentModel):
             invoice_id=invoice_id,
             tenancy=tenancy,
             contract=self,
-            internal_customer_id=5,
             external_customer_id=5,
             description="Invoice: " + date_today.__str__(),
             expiration_date=date_today +
@@ -556,7 +553,6 @@ class Invoice(TenancyDependentModel):
     invoice_id = models.AutoField(primary_key=True)
     # Ask if this should cascade
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
-    internal_customer_id = models.PositiveIntegerField()
     external_customer_id = models.PositiveIntegerField()
     description = models.CharField(max_length=50)
     base_amount = models.FloatField(default=0.0)
@@ -573,8 +569,7 @@ class Invoice(TenancyDependentModel):
 
     def get_details(self):
         """Method to print all fields and their values."""
-        return {'internal customer id': self.internal_customer_id,
-                'external customer id': self.external_customer_id,
+        return {'external customer id': self.external_customer_id,
                 'description': self.description,
                 'base amount': self.base_amount,
                 'vat amount': self.vat_amount,

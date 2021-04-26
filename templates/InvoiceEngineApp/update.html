@@ -1,26 +1,24 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block content %}
+    <div class="col">
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <h5 class="card-title"> {{ object.name }}</h5>
 
+                <ul class="list-group list-group-flush">
+                    <form method="post">
 
-<div class="col">
-    <div class="card shadow p-3 mb-5 bg-body rounded">
-        <div class="card-body">
-            <h5 class="card-title"> {{ object.name }}</h5>
+                        <!-- Security token -->
+                        {% csrf_token %}
 
-            <ul class="list-group list-group-flush">
-                <form method="post">
+                        <!-- Using the formset -->
+                        {{ form.as_p }}
 
-                    <!-- Security token -->
-                    {% csrf_token %}
-
-                    <!-- Using the formset -->
-                    {{ form.as_p }}
-
-                    <input type="submit" value="Save">
-                </form>
-            </ul>
+                        <input type="submit" value="Save">
+                    </form>
+                </ul>
+            </div>
         </div>
     </div>
-
-    {% endblock %}
+{% endblock %}
