@@ -1,53 +1,153 @@
-
 {% extends 'InvoiceEngineApp/base.html' %}
 
+{% block navbar %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'contract_create' company_id %}">Create new contract</a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'tenancy_list'%}">Return to company list</a>
+    </li>
+{% endblock %}
+
 {% block content %}
-    <!-- Display objects -->
-    {% for contract in page_obj %}
-        <p>description: {{ contract.description }}</p>
-        <!-- Give the user options to view, update, and delete the contract type -->
-        <p><a href="{% url 'contract_details' company_id contract.contract_id %}">Details</a></p>
-        <p><a href="{% url 'contract_update' company_id contract.contract_id %}">Update</a></p>
-        <p><a href="{% url 'contract_delete' company_id contract.contract_id %}">Delete</a></p>
+    <div class="container">
+        {# Table header #}
+        <form method="GET">
+            <div class="row">
+                <div class="col-lg-2">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Name(s)</h5>
+                    {{ form.name }}
+                </div>
+                <div class="col-lg-2 text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 16px">Address(es)</h5>
+                    {{ form.address }}
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Contract type</h5>
+                    {{ form.contract_type }}
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Period</h5>
+                    {{ form.period }}
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
+                    {{ form.start_date }}
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
+                    {{ form.end_date }}
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Next invoicing</h5>
+                    {{ form.next_invoice_date }}
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total amount</h5>
+                    {{ form.total_amount }}
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Balance</h5>
+                    {{ form.balance }}
+                </div>
+                {# Empty column header for update & delete links #}
+                <div class="col">
+                    <button type="submit" class="btn btn-primary" style="margin-top: 30px">Search</button>
+                </div>
+            </div>
+        </form>
+        {# Table contents #}
+        {% for object in page_obj %}
+            <div class="card shadow p-1 mb-2 bg-body rounded">
+                <div class="card-body">
+                    <div class="row">
+                        {# Loop for the names and addresses of persons #}
+                        {% for contract_person in object.get_contract_persons %}
+                            <div class="row">
+                                <div class="col-lg-2 text-left">
+                                    <h5 class="card-title">{{ contract_person.name }}: {{ contract_person.percentage_of_total }}%</h5>
+                                </div>
+                                <div class="col-lg-2 text-left">
+                                    <p>{{ contract_person.address }} - {{ contract_person.city }}</p>
+                                </div>
 
-        ----<br>
+                                {% if forloop.first %}
+                                    <div class="col text-left">
+                                        <p>{{ object.contract_type }}</p>
+                                    </div>
+                                    <div class="col text-left" style="padding-left: 35px">
+                                        <p>{{ object.get_period }}</p>
+                                    </div>
+                                    <div class="col text-left" style="padding-left: 50px">
+                                        <p>{{ object.start_date }}</p>
+                                    </div>
+                                    <div class="col text-left" style="padding-left: 30px">
+                                        <p>{{ object.end_date }}</p>
+                                    </div>
+                                    <div class="col text-left" style="padding-left: 30px">
+                                        <p>{{ object.next_date_prolong }}</p>
+                                    </div>
+                                    <div class="col text-left" style="padding-left: 40px">
+                                        <p>€{{ object.total_amount }}</p>
+                                    </div>
+                                    <div class="col text-left" style="padding-left: 40px">
+                                        <p>€{{ object.balance }}</p>
+                                    </div>
+                                    {# Update and delete links #}
+                                    <div class="col">
+                                        <ul class="nav">
+                                            <li class="nav-item">
+                                                <a class="nav-link" href="{% url 'contract_details' company_id object.contract_id %}">Details</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% empty %}
+                            <div class="col-lg-2 text-left"></div>
+                            <div class="col-lg-2 text-left"></div>
+                            <div class="col text-left">
+                                <p>{{ object.contract_type }}</p>
+                            </div>
+                            <div class="col text-left" style="padding-left: 35px">
+                                <p>{{ object.get_period }}</p>
+                            </div>
+                            <div class="col text-left" style="padding-left: 50px">
+                                <p>{{ object.start_date }}</p>
+                            </div>
+                            <div class="col text-left" style="padding-left: 30px">
+                                <p>{{ object.end_date }}</p>
+                            </div>
+                            <div class="col text-left" style="padding-left: 30px">
+                                <p>{{ object.next_date_prolong }}</p>
+                            </div>
+                            <div class="col text-left" style="padding-left: 40px">
+                                <p>€{{ object.total_amount }}</p>
+                            </div>
+                            <div class="col text-left" style="padding-left: 40px">
+                                <p>€{{ object.balance }}</p>
+                            </div>
+                            {# Update and delete links #}
+                            <div class="col">
+                                <ul class="nav">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'contract_details' company_id object.contract_id %}">Details</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+{#            <a href="{% url 'contract_person_create' company_id object.contract_id %}">Create contract person</a>#}
+            </div>
 
-        {% for component in contract.get_components %}
-            <p>
-                component: {{ component.description }}
-                <a href="{% url 'component_update' company_id contract.contract_id component.component_id %}">Update component</a>
-                <a href="{% url 'component_delete' company_id contract.contract_id component.component_id %}">Delete component</a>
-            </p>
         {% empty %}
-            No components
+            <p>No objects yet</p>
         {% endfor %}
+    </div>
 
-        <p>
-            <a href="{% url 'component_create' company_id contract.contract_id %}">Create component</a>
-        </p>
-
-        ----<br>
-
-        {% for contract_person in contract.get_contract_persons %}
-            <p>
-                contract person: {{ contract_person.name }}
-                <a href="{% url 'contract_person_update' company_id contract.contract_id contract_person.contract_person_id %}">Update contract person</a>
-                <a href="{% url 'contract_person_delete' company_id contract.contract_id contract_person.contract_person_id %}">Delete contract person</a>
-            </p>
-        {% empty %}
-            No contract persons
-        {% endfor %}
-
-        <p>
-            <a href="{% url 'contract_person_create' company_id contract.contract_id %}">Create contract person</a>
-        </p>
-
-        <hr/>
-    <!-- If object_list is empty  -->
-    {% empty %}
-        <p>No objects yet</p>
-    {% endfor %}
-
+    {# Pagination back and next links #}
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
@@ -65,8 +165,4 @@
             {% endif %}
         </span>
     </div>
-
-    <p><a href="{% url 'contract_create' company_id %}">Create new contract</a></p>
-    <p><a href="{% url 'tenancy_list' %}">Back to tenancy list</a></p>
-
 {% endblock %}

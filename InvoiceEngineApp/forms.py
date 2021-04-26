@@ -79,6 +79,41 @@ class ContractForm(forms.ModelForm):
                    ]
 
 
+class ContractSearchForm(forms.Form):
+    name = forms.CharField(max_length=50, required=False)
+    address = forms.CharField(max_length=50, required=False)
+    contract_type = forms.CharField(max_length=50, required=False, widget=forms.TextInput(attrs={'size': 10}))
+    period = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={'size': 8}))
+    start_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'size': 8}))
+    end_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'size': 8}))
+    next_invoice_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'size': 8}))
+    total_amount = forms.FloatField(required=False, widget=forms.NumberInput(attrs={'size': 8}))
+    balance = forms.FloatField(required=False, widget=forms.NumberInput(attrs={'size': 8}))
+
+    def filter_queryset(self, qs):
+        if self.cleaned_data.get('contract_type'):
+            qs = qs.filter(contract_type__description__icontains=self.cleaned_data.get('contract_type'))
+        if self.cleaned_data.get('period'):
+            qs = qs.filter(invoicing_period__istartswith=self.cleaned_data.get('period')[0])
+        if self.cleaned_data.get('start_date'):
+            qs = qs.filter(start_date=self.cleaned_data.get('start_date'))
+        if self.cleaned_data.get('end_date'):
+            qs = qs.filter(end_date=self.cleaned_data.get('end_date'))
+        if self.cleaned_data.get('next_invoice_date'):
+            qs = qs.filter(next_date_prolong=self.cleaned_data.get('next_invoice_date'))
+        if self.cleaned_data.get('total_amount'):
+            qs = qs.filter(total_amount=self.cleaned_data.get('total_amount'))
+        if self.cleaned_data.get('balance'):
+            qs = qs.filter(balance=self.cleaned_data.get('balance'))
+        if self.cleaned_data.get('name'):
+            qs = qs.filter(contractperson__name__icontains=self.cleaned_data.get('name'))
+        if self.cleaned_data.get('address'):
+            qs = qs.filter(contractperson__address__icontains=self.cleaned_data.get('address')) \
+                 | qs.filter(contractperson__city__icontains=self.cleaned_data.get('address'))
+
+        return qs
+
+
 class ComponentForm(forms.ModelForm):
     """A form for the user to set the fields of a component."""
     def filter_selectors(self, tenancy):

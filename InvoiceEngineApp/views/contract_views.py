@@ -1,7 +1,7 @@
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
-from InvoiceEngineApp.forms import ContractForm
+from InvoiceEngineApp.forms import ContractForm, ContractSearchForm
 from InvoiceEngineApp.models import Contract
 from InvoiceEngineApp.views.parent_views import (
     ParentListView,
@@ -14,7 +14,23 @@ from InvoiceEngineApp.views.parent_views import (
 
 class ContractListView(ParentListView):
     template_name = 'InvoiceEngineApp/contract_list.html'
+    form_class = ContractSearchForm
     model = Contract
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = self.form_class(self.request.GET)
+        return context
+
+    def get_queryset(self):
+        # Get the contract list filtered by tenancy
+        qs = super().get_queryset()
+        form = self.form_class(self.request.GET)
+
+        # Filter the contract list further by user input
+        if form.is_valid():
+            return form.filter_queryset(qs)
+        return qs
 
 
 class ContractCreateView(ParentCreateView):

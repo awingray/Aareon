@@ -293,11 +293,11 @@ class Contract(TenancyDependentModel):
     YEAR = 'Y'
     CUSTOM = 'V'
     INVOICING_PERIOD_CHOICES = [
-        (MONTH, 'month'),
-        (QUARTER, 'quarter'),
-        (HALF_YEAR, 'half year'),
-        (YEAR, 'year'),
-        (CUSTOM, 'custom')
+        (MONTH, 'Month'),
+        (QUARTER, 'Quarter'),
+        (HALF_YEAR, 'Half year'),
+        (YEAR, 'Year'),
+        (CUSTOM, 'Custom')
     ]
 
     # Define options for the way the cost of a contract is calculated
@@ -354,6 +354,11 @@ class Contract(TenancyDependentModel):
 
     def get_contract_persons(self):
         return self.contractperson_set.all()
+
+    def get_period(self):
+        for key, value in self.INVOICING_PERIOD_CHOICES:
+            if key == self.invoicing_period:
+                return value
 
     def get_details(self):
         """Method to print all fields and their values."""
