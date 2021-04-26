@@ -11,29 +11,69 @@
 {% endblock %}
 
 {% block content %}
-    <div class="col">
-        <!-- Display objects -->
+    <div class="container">
+        {# Table header #}
+        <div class="row">
+            <div class="col-lg-4">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Description</h5>
+            </div>
+            <div class="col-sm-1 text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Code</h5>
+            </div>
+            <div class="col-sm-1 text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Type</h5>
+            </div>
+            <div class="col text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger debit</h5>
+            </div>
+            <div class="col text-left">
+                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger credit</h5>
+            </div>
+            {# Empty column header for update & delete links #}
+            <div class="col"></div>
+        </div>
+
+        {# Table contents #}
         {% for object in page_obj %}
-            <div class="card shadow p-3 mb-5 bg-body rounded" >
+            <div class="card shadow p-1 mb-2 bg-body rounded">
                 <div class="card-body">
-                    <h5 class="card-title"> {{ object.description }}</h5>
-                    <ul class="nav">
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="{% url 'contract_type_details' company_id object.contract_type_id %}">Details</a></li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'contract_type_update' company_id object.contract_type_id %}">Update</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'contract_type_delete' company_id object.contract_type_id %}">Delete</a>
-                        </li>
-                    </ul>
+                    <div class="row">
+                        <div class="col-lg-4">
+                            <h5 class="card-title"> {{ object.description }}</h5>
+                        </div>
+                        <div class="col-sm-1 text-left">
+                            <p>{{ object.code }}</p>
+                        </div>
+                        <div class="col-sm-1 text-left">
+                            <p>{{ object.type }}</p>
+                        </div>
+                        <div class="col text-left">
+                            <p>{{ object.general_ledger_debit }}</p>
+                        </div>
+                        <div class="col text-left">
+                            <p>{{ object.general_ledger_credit }}</p>
+                        </div>
+                        {# Update and delete links #}
+                        <div class="col">
+                            <ul class="nav">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'contract_type_update' company_id object.contract_type_id %}">Update</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'contract_type_delete' company_id object.contract_type_id %}">Delete</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
+
         {% empty %}
             <p>No objects yet</p>
         {% endfor %}
     </div>
 
+    {# Pagination back and next links #}
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
