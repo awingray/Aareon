@@ -18,7 +18,7 @@ def generate_benchmark_data(max_components):
     # 4 VAT rates
     # 10 contract types
     # 24 base components
-    # 100 000 contracts with 1 - max_components contract lines each & 1 - 2 contract persons
+    # 20000 contracts with 1 - max_components contract lines each & 1 - 2 contract persons
     start_time = datetime.datetime.now()
     print("started populating db at " + start_time.__str__())
 
@@ -93,7 +93,6 @@ def generate_benchmark_data(max_components):
             contract_type=random.choice(contract_types),
             status='S',
             invoicing_start_day=1,
-            internal_customer_id=27,
             external_customer_id=5,
             start_date=datetime.date(2017, 5, 5),
             next_date_prolong=datetime.date(2021, 4, 6),

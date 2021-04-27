@@ -405,6 +405,7 @@ class Contract(TenancyDependentModel):
 
         general_ledger_post = GeneralLedgerPost(
             general_ledger_post_id=glp_id,
+            tenancy=tenancy,
             invoice=invoice,
             invoice_line=None,
             date=date_today,
@@ -471,6 +472,7 @@ class Component(TenancyDependentModel):
 
         general_ledger_post_invoice_line = GeneralLedgerPost(
             general_ledger_post_id=glp_id,
+            tenancy=self.tenancy,
             invoice=None,  # This could be changed to invoice in needed
             invoice_line=invoice_line,
             date=datetime.date.today(),
@@ -487,6 +489,7 @@ class Component(TenancyDependentModel):
         glp_id += 1
         general_ledger_post_vat = GeneralLedgerPost(
             general_ledger_post_id=glp_id,
+            tenancy=self.tenancy,
             invoice=None,
             invoice_line=invoice_line,
             date=datetime.date.today(),
@@ -544,6 +547,7 @@ class ContractPerson(TenancyDependentModel):
     def create_collection(self, invoice, collection_id):
         return Collection(
             collection_id=collection_id,
+            tenancy=self.tenancy,
             contract_person=self,
             invoice=invoice,
             payment_method=self.payment_method,

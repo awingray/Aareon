@@ -90,10 +90,10 @@
                                         <p>{{ object.next_date_prolong }}</p>
                                     </div>
                                     <div class="col text-left" style="padding-left: 40px">
-                                        <p>€{{ object.total_amount }}</p>
+                                        <p>€{{ object.total_amount|floatformat:2 }}</p>
                                     </div>
                                     <div class="col text-left" style="padding-left: 40px">
-                                        <p>€{{ object.balance }}</p>
+                                        <p>€{{ object.balance|floatformat:2 }}</p>
                                     </div>
                                     {# Update and delete links #}
                                     <div class="col">
@@ -124,10 +124,10 @@
                                 <p>{{ object.next_date_prolong }}</p>
                             </div>
                             <div class="col text-left" style="padding-left: 40px">
-                                <p>€{{ object.total_amount }}</p>
+                                <p>€{{ object.total_amount|floatformat:2 }}</p>
                             </div>
                             <div class="col text-left" style="padding-left: 40px">
-                                <p>€{{ object.balance }}</p>
+                                <p>€{{ object.balance|floatformat:2 }}</p>
                             </div>
                             {# Update and delete links #}
                             <div class="col">
