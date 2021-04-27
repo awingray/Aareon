@@ -8,6 +8,7 @@ from InvoiceEngineApp.views.contract_views import *
 from InvoiceEngineApp.views.component_views import *
 from InvoiceEngineApp.views.contract_person_views import *
 from InvoiceEngineApp.views.invoice_views import *
+from InvoiceEngineApp.views.glposting_views import *
 
 
 urlpatterns = [
@@ -17,10 +18,14 @@ urlpatterns = [
 
     # Tenancy pages.
     path('profile/tenancies/', TenancyListView.as_view(), name='tenancy_list'),
-    path('profile/tenancies/create/', TenancyCreateView.as_view(), name='tenancy_create'),
-    path('profile/tenancies/<int:company_id>/', TenancyDetailView.as_view(), name='tenancy_details'),
-    path('profile/tenancies/<int:company_id>/update/', TenancyUpdateView.as_view(), name='tenancy_update'),
-    path('profile/tenancies/<int:company_id>/delete/', TenancyDeleteView.as_view(), name='tenancy_delete'),
+    path('profile/tenancies/create/',
+         TenancyCreateView.as_view(), name='tenancy_create'),
+    path('profile/tenancies/<int:company_id>/',
+         TenancyDetailView.as_view(), name='tenancy_details'),
+    path('profile/tenancies/<int:company_id>/update/',
+         TenancyUpdateView.as_view(), name='tenancy_update'),
+    path('profile/tenancies/<int:company_id>/delete/',
+         TenancyDeleteView.as_view(), name='tenancy_delete'),
 
     # This path is for testing the invoice_contracts button!
     path('profile/tenancies/<int:company_id>/run_engine/',
@@ -149,8 +154,18 @@ urlpatterns = [
          InvoiceListView.as_view(),
          name='invoice_list'
          ),
-    path('profile/tenancies/<int:company_id>/invoices/<int:invoice_id>',
+    path('profile/tenancies/<int:company_id>/invoices/<int:invoice_id>/',
          InvoiceDetailView.as_view(),
          name='invoice_details'
+         ),
+
+
+    path('profile/tenancies/<int:company_id>/glpost/',
+         GLPostListView.as_view(),
+         name='glpost_list'
+         ),
+    path('profile/tenancies/<int:company_id>/glpost/<int:general_ledger_post_id>/',
+         GLPostDetailView.as_view(),
+         name='glpost_details'
          ),
 ]
