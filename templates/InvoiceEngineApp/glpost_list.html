@@ -2,11 +2,7 @@
 
 {% block navbar %}
     <li class="nav-item">
-        <a class="nav-link" href="{% url 'glpost_create' company_id %}">Create new general ledger post</a>
-    </li>
-
-    <li class="nav-item">
-        <a class="nav-link" href="{% url 'tenancy_list'%}">Return to tenancy list</a>
+        <a class="nav-link" href="{% url 'tenancy_list'%}">Return to company list</a>
     </li>
 {% endblock %}
 
@@ -21,17 +17,11 @@
                 <li class="nav-item">
                     <a class="nav-link active" aria-current="page" href="{% url 'glpost_details' company_id object.general_ledger_post_id %}">Details</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'glpost_update' company_id object.general_ledger_post_id %}">Update</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'glpost_delete' company_id object.general_ledger_post_id %}">Delete</a>
-                </li>
             </ul>
         </div>
     </div>
     {% empty %}
-    <p>No objects yet</p>
+        <p>No objects yet</p>
     {% endfor %}
 
     <div class="pagination">

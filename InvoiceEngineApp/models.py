@@ -606,10 +606,9 @@ class InvoiceLine(models.Model):
     number_of_units = models.FloatField(null=True)
 
 
-class Collection(models.Model):
+class Collection(TenancyDependentModel):
     collection_id = models.AutoField(primary_key=True)
-    contract_person = models.ForeignKey(
-        ContractPerson, on_delete=models.CASCADE)
+    contract_person = models.ForeignKey(ContractPerson, on_delete=models.CASCADE)
     # Ask if this should cascade
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     payment_method = models.CharField(max_length=1)
@@ -619,15 +618,13 @@ class Collection(models.Model):
     amount = models.FloatField()
 
 
-class GeneralLedgerPost(models.Model):
+class GeneralLedgerPost(TenancyDependentModel):
     general_ledger_post_id = models.AutoField(primary_key=True)
     invoice = models.ForeignKey(Invoice, null=True, on_delete=models.CASCADE)
-    invoice_line = models.ForeignKey(
-        InvoiceLine, null=True, on_delete=models.CASCADE)
+    invoice_line = models.ForeignKey(InvoiceLine, null=True, on_delete=models.CASCADE)
     date = models.DateField()
     general_ledger_account = models.CharField(max_length=10)
-    general_ledger_dimension_base_component = models.CharField(
-        null=True, max_length=10)
+    general_ledger_dimension_base_component = models.CharField(null=True, max_length=10)
     general_ledger_dimension_contract_1 = models.CharField(max_length=10)
     general_ledger_dimension_contract_2 = models.CharField(max_length=10)
     general_ledger_dimension_vat = models.CharField(null=True, max_length=10)

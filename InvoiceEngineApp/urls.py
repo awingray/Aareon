@@ -8,7 +8,7 @@ from InvoiceEngineApp.views.contract_views import *
 from InvoiceEngineApp.views.component_views import *
 from InvoiceEngineApp.views.contract_person_views import *
 from InvoiceEngineApp.views.invoice_views import *
-from InvoiceEngineApp.views.glposting_views import *
+from InvoiceEngineApp.views.glpost_views import *
 
 
 urlpatterns = [
@@ -17,15 +17,21 @@ urlpatterns = [
     path('profile/', UserProfilePage.as_view(), name='profile'),
 
     # Tenancy pages.
-    path('profile/tenancies/', TenancyListView.as_view(), name='tenancy_list'),
+    path('profile/tenancies/',
+         TenancyListView.as_view(),
+         name='tenancy_list'),
     path('profile/tenancies/create/',
-         TenancyCreateView.as_view(), name='tenancy_create'),
+         TenancyCreateView.as_view(),
+         name='tenancy_create'),
     path('profile/tenancies/<int:company_id>/',
-         TenancyDetailView.as_view(), name='tenancy_details'),
+         TenancyDetailView.as_view(),
+         name='tenancy_details'),
     path('profile/tenancies/<int:company_id>/update/',
-         TenancyUpdateView.as_view(), name='tenancy_update'),
+         TenancyUpdateView.as_view(),
+         name='tenancy_update'),
     path('profile/tenancies/<int:company_id>/delete/',
-         TenancyDeleteView.as_view(), name='tenancy_delete'),
+         TenancyDeleteView.as_view(),
+         name='tenancy_delete'),
 
     # This path is for testing the invoice_contracts button!
     path('profile/tenancies/<int:company_id>/run_engine/',
@@ -159,12 +165,12 @@ urlpatterns = [
          name='invoice_details'
          ),
 
-
-    path('profile/tenancies/<int:company_id>/glpost/',
+    # General ledger post pages.
+    path('profile/tenancies/<int:company_id>/glposts/',
          GLPostListView.as_view(),
          name='glpost_list'
          ),
-    path('profile/tenancies/<int:company_id>/glpost/<int:general_ledger_post_id>/',
+    path('profile/tenancies/<int:company_id>/glposts/<int:general_ledger_post_id>/',
          GLPostDetailView.as_view(),
          name='glpost_details'
          ),

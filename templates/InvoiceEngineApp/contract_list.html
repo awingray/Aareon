@@ -57,6 +57,7 @@
                 </div>
             </div>
         </form>
+
         {# Table contents #}
         {% for object in page_obj %}
             <div class="card shadow p-1 mb-2 bg-body rounded">
@@ -139,7 +140,6 @@
                         {% endfor %}
                     </div>
                 </div>
-{#            <a href="{% url 'contract_person_create' company_id object.contract_id %}">Create contract person</a>#}
             </div>
 
         {% empty %}

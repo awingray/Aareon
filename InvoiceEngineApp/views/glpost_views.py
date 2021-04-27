@@ -18,7 +18,7 @@ class GLPostDetailView(ParentDetailView):
 
     def __init__(self):
         super().__init__()
-        self.object_type = "glpost"
+        self.object_type = "general ledger post"
         self.list_page = "glpost_list"
 
     def get_object(self, queryset=GeneralLedgerPost.objects.all()):
