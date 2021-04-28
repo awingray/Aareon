@@ -355,6 +355,9 @@ class Contract(TenancyDependentModel):
     def get_contract_persons(self):
         return self.contractperson_set.all()
 
+    def get_invoices(self):
+        return self.invoice_set.all()
+
     def get_period(self):
         for key, value in self.INVOICING_PERIOD_CHOICES:
             if key == self.invoicing_period:

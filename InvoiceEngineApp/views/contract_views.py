@@ -2,13 +2,12 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 from InvoiceEngineApp.forms import ContractForm, ContractSearchForm
-from InvoiceEngineApp.models import Contract
+from InvoiceEngineApp.models import Contract, Invoice
 from InvoiceEngineApp.views.parent_views import (
     ParentListView,
     ParentCreateView,
     ParentUpdateView,
     ParentDeleteView,
-    ParentDetailView
 )
 
 
@@ -49,19 +48,38 @@ class ContractCreateView(ParentCreateView):
         return form
 
 
-class ContractDetailView(ParentDetailView):
-    template_name = 'InvoiceEngineApp/details.html'
+class ContractDetailView(ParentListView):
+    """DetailView for contract.  It is implemented as a ListView because is has to list all invoices
+    corresponding to the contract.
+    """
+    template_name = 'InvoiceEngineApp/contract_details.html'
 
     def __init__(self):
         super().__init__()
         self.object_type = "contract"
         self.list_page = "contract_list"
+        self.object = None
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
-        qs = queryset.filter(contract_id=contract_id)
-        qs = super().filter_by_tenancy(qs)
+        qs = queryset.filter(
+            contract_id=contract_id,
+            tenancy__tenancy_id=self.request.user.username
+        )
         return get_object_or_404(qs)
+
+    def get_queryset(self):
+        self.object = self.get_object()
+        return self.object.get_invoices()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['object'] = self.object
+        context['list_page'] = [
+            self.list_page,
+            self.kwargs.get('company_id')
+        ]
+        return context
 
 
 class ContractUpdateView(ParentUpdateView):
