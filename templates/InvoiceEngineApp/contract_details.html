@@ -3,30 +3,59 @@
 {% block navbar %}
 <li class="nav-item">
     {% if list_page|length == 1 %}
-        <a class="nav-link" aria-current="page" href="{% url list_page.0 %}">Return</a>
+    <a class="nav-link" aria-current="page" href="{% url list_page.0 %}">Return</a>
     {% else %}
-        <a class="nav-link" aria-current="page" href="{% url list_page.0 list_page.1 %}">Return</a>
+    <a class="nav-link" aria-current="page" href="{% url list_page.0 list_page.1 %}">Return</a>
     {% endif %}
 </li>
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-        {# General information section #}
-        <h2>General information</h2>
-        <div class="card shadow p-3 mb-5 bg-body rounded">
-            <div class="card-body">
-                <div class="col">
-                    Some info
-                </div>
-                <div class="col">
-                    Some info
-                </div>
-                <div class="col">
-                    Some info
-                </div>
+<div class="container">
+    {# General information section #}
+    <h2>General information</h2>
+
+    <div class="card shadow p-3 mb-5 bg-body rounded">
+        <div class="card-body">
+
+
+
+            <div class="table-responsive">
+                <table class="table">
+
+                    {% for key, value in object.get_details.items %}
+                    <thead>
+                        <tr>
+                            <th scope="col">{{key}}</th>
+                            <th scope="col">{{value}}</th>
+                        </tr>
+                    </thead>
+
+                    {% endfor %}
+                </table>
             </div>
         </div>
+    </div>
+    <div class="row">
+        {% for key, value in object.get_details.items %}
+        <div class="col-md-6 col-xl-3 mb-4">
+
+            <div class="card shadow border-left-primary py-2">
+                <div class="card-body">
+                    <div class="row align-items-center no-gutters">
+                        <div class="col mr-2">
+                            <div class="text-uppercase text-primary font-weight-bold text-xs mb-1"><span>{{key}}</span>
+                            </div>
+                            <div class="text-dark font-weight-bold h5 mb-0"><span>{{value}}</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
 
         {# Components list section #}
         <h2>Components</h2>
@@ -306,26 +335,31 @@
             <p>No invoices yet</p>
         {% endfor %}
     </div>
+<!-- Create the pagination back and next links  -->
+<div class="col">
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
 
-    <!-- Create the pagination back and next links  -->
-    <div class="col">
-        <div class="pagination">
-            <span class="step-links">
-                {% if page_obj.has_previous %}
-                    <a href="?page=1">&laquo; first</a>
-                    <a href="?page={{ page_obj.previous_page_number }}">previous</a>
-                {% endif %}
-
-                <span class="current">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-                </span>
-
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}">next</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-                {% endif %}
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
             </span>
-        </div>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
     </div>
+</div>
+
+</div>
+
+
+
+
 
 {% endblock %}
