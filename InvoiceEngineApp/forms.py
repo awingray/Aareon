@@ -1,7 +1,11 @@
 from django import forms
+from django.db import transaction
+from django.db.models import Max
 from django.shortcuts import get_object_or_404
+import datetime
 
 from InvoiceEngineApp import models
+from InvoiceEngineApp.models import Invoice, InvoiceLine, GeneralLedgerPost
 
 
 class TenancyAdministratorForm(forms.ModelForm):
@@ -10,7 +14,8 @@ class TenancyAdministratorForm(forms.ModelForm):
     """
     class Meta:
         model = models.Tenancy
-        exclude = ['number_of_contracts', 'last_invoice_number', 'days_until_invoice_expiration', 'day_next_prolong']
+        exclude = ['number_of_contracts', 'last_invoice_number',
+                   'days_until_invoice_expiration', 'date_next_prolongation']
 
 
 class TenancySubscriberForm(forms.ModelForm):
@@ -66,16 +71,17 @@ class ContractForm(forms.ModelForm):
 
     def finalize_creation(self, view_object):
         self.instance.tenancy = view_object.tenancy
-        self.instance.next_date_prolong = self.instance.start_date
+        self.instance.date_next_prolongation = self.instance.start_date
+        self.instance.date_prolonged_until = None
 
         self.instance.tenancy.number_of_contracts += 1
-        self.instance.tenancy.clean()
         self.instance.tenancy.save()
 
     class Meta:
         model = models.Contract
-        exclude = ['tenancy', 'invoicing_amount_type', 'next_date_prolong',
-                   'balance', 'base_amount', 'vat_amount', 'total_amount'
+        exclude = ['tenancy', 'invoicing_amount_type', 'date_next_prolongation',
+                   'balance', 'base_amount', 'vat_amount', 'total_amount',
+                   'date_prolonged_until'
                    ]
 
 
@@ -149,29 +155,141 @@ class ComponentForm(forms.ModelForm):
         # Check that end date is after start date
         start_date = cleaned_data.get("start_date")
         end_date = cleaned_data.get("end_date")
-        if end_date and end_date < start_date:
-            raise forms.ValidationError("End date should be after start date.")
-
-        # Check that end date of prolonging is after start date and before or on end date
-        end_date_prolong = cleaned_data.get("end_date_prolong")
-        if end_date_prolong:
-            if end_date_prolong < start_date:
-                raise forms.ValidationError("End date of prolonging should be after start date.")
-            if end_date_prolong > end_date:
-                raise forms.ValidationError("End date of prolonging should be before or on the end date.")
+        if end_date and end_date <= start_date:
+            raise forms.ValidationError("End date should be after or on start date.")
 
     def finalize_creation(self, view_object):
         self.instance.tenancy = view_object.tenancy
         contract = get_object_or_404(
-            models.Contract,
+            models.Contract.objects.select_related('contract_type'),
             contract_id=view_object.kwargs.get('contract_id')
         )
         self.instance.contract = contract
-        self.instance.next_date_prolong = contract.next_date_prolong
+        self.instance.date_next_prolongation = self.instance.start_date
+        self.instance.date_prolonged_until = None
         self.instance.unit_id = self.instance.base_component.unit_id
-        self.finalize_update()
+
+        self.set_derived_fields()
+
+        # When a new component is created,
+        # try to find another active component that uses the same base component and end that one
+        # This represents a price change for the old component, but the old component needs to remain (for audit trail)
+        old_component_qs = self.instance.contract.component_set.filter(
+            base_component=self.instance.base_component,
+            end_date=None
+        ).select_related('contract', 'vat_rate', 'base_component')
+        if old_component_qs.exists():
+            old_component = get_object_or_404(old_component_qs)
+            old_component.end_date = self.instance.start_date - datetime.timedelta(days=1)  # End old component
+            if old_component.end_date < old_component.start_date:
+                # The old component was effectively cancelled
+                old_component.end_date = old_component.start_date
+
+            if old_component.end_date < old_component.date_prolonged_until:
+                # If an invoice has gone out already, issue a correction
+                self.process_retroactive_price_change(old_component)
+
+        # A save for the contract is needed in any case, because the derived fields have to be saved as well
+        self.instance.contract.save()
+
+    def process_retroactive_price_change(self, old_component):
+        """Create a correction invoice consisting of two invoice lines:
+        1. correction: remove the amount that was overpaid for the old component (negative)
+        2. new amount: add the amount that needs to be paid for the new component (positive)
+        The amount on the resulting invoice can be positive (price raise) or negative (price drop)
+
+        The correction period in this method is a multiple of the invoicing_period corresponding to the contract
+        """
+
+        # Following qs is non-empty, because the component has been invoiced after its end date
+        invoice_lines_qs = old_component.invoiceline_set.filter(
+            invoice__date__lt=old_component.date_prolonged_until
+        ).order_by('-date')
+
+        number_of_periods = 0
+        # Loop over invoices until the one directly preceding the component's end date is found
+        # This is necessary because multiple invoices may have gone out before addressing the price change
+        start_date_correction_period = old_component.start_date  # For safety
+        for invoice_line in invoice_lines_qs:
+            number_of_periods += 1
+
+            if invoice_line.date < old_component.end_date:
+                start_date_correction_period = invoice_line.date
+                break
+
+        # The amount of days to correct for is determined by the date of the invoice that was issued before the end date
+        # of the component: last_invoice_date - invoice_directly_before_component_end_date
+        days_correction_period = (old_component.date_prolonged_until - start_date_correction_period).days
+        days_wrongly_invoiced = (old_component.date_prolonged_until - old_component.end_date).days
+
+        next_invoice_id = 0
+        next_invoice_line_id = 0
+
+        if Invoice.objects.exists():
+            next_invoice_id = Invoice.objects.aggregate(
+                Max('invoice_id')
+            ).get('invoice_id__max') + 1
+            next_invoice_line_id = InvoiceLine.objects.aggregate(
+                Max('invoice_line_id')
+            ).get('invoice_line_id__max') + 1
+
+        # Create invoice. No need to increment counter as we are only creating one invoice
+        correction_invoice = self.instance.contract.create_invoice(datetime.date.today(), next_invoice_id, self.instance.tenancy)
+
+        # Create correction invoice lines & general ledger posts
+        new_invoice_lines = []
+        new_gl_posts = []
+        old_component.create_invoice_lines(
+            next_invoice_line_id,
+            correction_invoice,
+            -old_component.base_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            -old_component.vat_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            -old_component.total_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            -old_component.unit_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            new_invoice_lines,
+            new_gl_posts
+        )
+        next_invoice_line_id += 1
+
+        # Create invoice line for the new component
+        self.instance.create_invoice_line(
+            next_invoice_line_id,
+            correction_invoice,
+            self.instance.base_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            self.instance.vat_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            self.instance.total_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            self.instance.unit_amount * number_of_periods / days_correction_period * days_wrongly_invoiced,
+            new_invoice_lines,
+            new_gl_posts
+        )
+
+        # Finish up the new component
+        self.instance.date_prolonged_until = old_component.date_prolonged_until
+
+        # Finish up the old component
+        old_component.date_prolonged_until = old_component.end_date
+        old_component.date_next_prolongation = None
+
+        # Update the database (the contract is updated later)
+        # The new component is saved automatically after this
+        with transaction.atomic():
+            correction_invoice.save()
+            InvoiceLine.objects.bulk_create(new_invoice_lines)
+            GeneralLedgerPost.objects.bulk_create(new_gl_posts)
+            old_component.save()
+
+        # Finish up the contract (saved in calling function)
+        # Contract balance is updated when invoice lines are created
+        self.instance.contract.base_amount -= old_component.base_amount
+        self.instance.contract.vat_amount -= old_component.vat_amount
+        self.instance.contract.total_amount -= old_component.total_amount
 
     def finalize_update(self):
+        """Update the amounts on the component and on the corresponding contract."""
+        self.set_derived_fields()
+        self.instance.contract.save()
+
+    def set_derived_fields(self):
         # Base amount and unit amount are mutually exclusive.  This is handled in clean()
         amount = self.instance.base_amount
         if not amount:
@@ -184,11 +302,11 @@ class ComponentForm(forms.ModelForm):
         self.instance.contract.total_amount += self.instance.total_amount
         self.instance.contract.vat_amount += self.instance.vat_amount
         self.instance.contract.base_amount += amount
-        self.instance.contract.save()
 
     class Meta:
         model = models.Component
-        exclude = ['contract', 'vat_amount', 'total_amount', 'tenancy', 'next_date_prolong', 'unit_id']
+        exclude = ['contract', 'vat_amount', 'total_amount', 'tenancy',
+                   'date_next_prolongation', 'unit_id', 'date_prolonged_until']
 
 
 class ContractPersonForm(forms.ModelForm):

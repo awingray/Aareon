@@ -7,7 +7,9 @@ from InvoiceEngineApp.models import (
     Contract,
     Component,
     Invoice,
-    InvoiceLine
+    InvoiceLine,
+    Collection,
+    GeneralLedgerPost
 )
 
 admin.site.register(Tenancy)
@@ -18,3 +20,5 @@ admin.site.register(Contract)
 admin.site.register(Component)
 admin.site.register(Invoice)
 admin.site.register(InvoiceLine)
+admin.site.register(Collection)
+admin.site.register(GeneralLedgerPost)

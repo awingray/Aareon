@@ -25,12 +25,12 @@ def generate_benchmark_data(max_components):
     amount_of_contract_types = 10
     amount_of_base_components = 24
     amount_of_vat_rates = 4
-    amount_of_contracts = 20000
+    amount_of_contracts = 50000
     max_contract_persons = 2
 
     tenancy = Tenancy.objects.create(
         tenancy_id=113582,
-        day_next_prolong=datetime.date.today(),
+        date_next_prolongation=datetime.date.today(),
         name='TestCorp',
         days_until_invoice_expiration=14,
         number_of_contracts=amount_of_contracts
@@ -95,7 +95,7 @@ def generate_benchmark_data(max_components):
             invoicing_start_day=1,
             external_customer_id=5,
             start_date=datetime.date(2017, 5, 5),
-            next_date_prolong=datetime.date(2021, 4, 6),
+            date_next_prolongation=datetime.date(2021, 4, 6),
             general_ledger_dimension_contract_1="dim1",
             general_ledger_dimension_contract_2="dim2"
         )
@@ -115,7 +115,7 @@ def generate_benchmark_data(max_components):
                 vat_rate=vat_rate,
                 description="test component " + j.__str__() + " of contract " + i.__str__(),
                 start_date=datetime.date(2017, 5, 5),
-                next_date_prolong=datetime.date(2021, 4, 6),
+                date_next_prolongation=datetime.date(2021, 4, 6),
                 base_amount=base_amount,
                 vat_amount=vat_amount,
                 total_amount=total_amount,
