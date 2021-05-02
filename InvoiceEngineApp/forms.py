@@ -59,7 +59,7 @@ class VATRateForm(forms.ModelForm):
 
         percentage = cleaned_data.get("percentage")
         if percentage > 100.0:
-            raise forms.ValidationError("Percentage should be in the range of 0.0-100.0")
+            raise forms.ValidationError("Percentage should be in the range of 0.0% to 100.0%")
 
     class Meta:
         model = models.VATRate
