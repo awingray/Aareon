@@ -57,6 +57,10 @@ class VATRateForm(forms.ModelForm):
         if end_date and end_date < start_date:
             raise forms.ValidationError("End date should be after start date.")
 
+        percentage = cleaned_data.get("percentage")
+        if percentage > 100.0:
+            raise forms.ValidationError("Percentage should be in the range of 0.0-100.0")
+
     class Meta:
         model = models.VATRate
         exclude = ['tenancy']
