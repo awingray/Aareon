@@ -3,11 +3,12 @@ from django.db import models, transaction
 
 
 class Tenancy(models.Model):
-    """The tenancy defines the organization using the model.  All other classes will have an (indirect) reference to the
-    tenancy, in order to keep track of who is allowed to access the data.
+    """The tenancy defines the organization using the model.
+    All other classes will have an (indirect) reference to the tenancy,
+    in order to keep track of who is allowed to access the data.
 
-    A tenant can manage multiple companies, but one company cannot be managed by multiple tenants. Therefore, the
-    company_id is the primary key.
+    A tenant can manage multiple companies, but one company cannot be managed
+    by multiple tenants. Therefore, the company_id is the primary key.
     """
     company_id = models.AutoField(primary_key=True)
     tenancy_id = models.PositiveIntegerField()
@@ -15,33 +16,32 @@ class Tenancy(models.Model):
     number_of_contracts = models.PositiveIntegerField(default=0)
     last_invoice_number = models.PositiveIntegerField(default=0)
     date_next_prolongation = models.DateField(null=True, blank=True)
-    days_until_invoice_expiration = models.PositiveSmallIntegerField(default=14)
+    days_until_invoice_expiration = models.PositiveSmallIntegerField(
+        default=14
+    )
 
     def __str__(self):
         return self.name
 
     def get_details(self):
         """Method to print all fields and their values."""
-        return {'name': self.name,
-                'number of contracts': self.number_of_contracts,
-                'last invoice number': self.last_invoice_number,
-                'date of next prolonging': self.date_next_prolongation,
-                'days until invoice expiration': self.days_until_invoice_expiration
-                }
+        return {
+            'name': self.name,
+            'number of contracts': self.number_of_contracts,
+            'last invoice number': self.last_invoice_number,
+            'date of next prolonging': self.date_next_prolongation,
+            'days until invoice expiration': self.days_until_invoice_expiration
+        }
 
     def invoice_contracts(self):
-        # Set the id for the next object.  Take the highest id that is currently in the database and increment by 1
-        next_invoice_id = 0
-        next_invoice_line_id = 0
+        """"Method to go over all components linked to this tenancy, and
+        to create invoices, invoice lines, collections, and general ledger
+        posts for each of them.
 
-        if Invoice.objects.exists():
-            next_invoice_id = Invoice.objects.aggregate(
-                models.Max('invoice_id')
-            ).get('invoice_id__max') + 1
-            next_invoice_line_id = InvoiceLine.objects.aggregate(
-                models.Max('invoice_line_id')
-            ).get('invoice_line_id__max') + 1
-
+        The ids for invoices and invoice lines have to be set manually,
+        because they will be linked to by other objects. It is not possible
+        to link after entry into the database.
+        """
         date_today = datetime.date.today()
 
         # Load all components into memory
@@ -49,12 +49,28 @@ class Tenancy(models.Model):
             self.component_set.filter(
                 date_next_prolongation__isnull=False,
                 date_next_prolongation__lte=date_today
-            ).order_by('contract_id').select_related('contract__contract_type', 'vat_rate', 'base_component')
+            ).order_by(
+                'contract_id'
+            ).select_related(
+                'contract__contract_type', 'vat_rate', 'base_component'
+            )
         )
 
         if not components:
             # There are no contracts to prolong
             return
+
+        # Set the id for the next invoice & invoice line.
+        # Take the highest id that is currently in the database and add 1
+        next_invoice_id = 0
+        next_invoice_line_id = 0
+        if Invoice.objects.exists():
+            next_invoice_id = Invoice.objects.aggregate(
+                models.Max('invoice_id')
+            ).get('invoice_id__max') + 1
+            next_invoice_line_id = InvoiceLine.objects.aggregate(
+                models.Max('invoice_line_id')
+            ).get('invoice_line_id__max') + 1
 
         # Load all contract persons into memory
         contract_persons = list(
@@ -64,63 +80,108 @@ class Tenancy(models.Model):
             ).order_by('contract_id')
         )
 
+        # Create lists to store the generated objects
+        # This is to use one single database transaction at the end
         new_invoices = []
         new_invoice_lines = []
         new_gl_posts = []
         new_collections = []
 
-        invoice = components[0].contract.invoice(date_today, next_invoice_id, self)
+        # Create an invoice for the first component's contract
+        invoice = components[0].contract.invoice(
+            date_today, next_invoice_id, self
+        )
         new_invoices.append(invoice)
         next_invoice_id += 1
-
         previous_contract = components[0].contract_id
 
+        # Loop over all components to create invoice lines for them
         for component in components:
             # Create a new invoice only when a new contract is reached
             # This is possible because components are ordered by contract_id
             if component.contract_id != previous_contract:
-                # Invoice for contract x is finished, generate collections for contract x
-                while contract_persons and contract_persons[0].contract_id == previous_contract:
+                # Invoice for contract x is finished
+                # Generate collections for contract x
+                while contract_persons and \
+                        contract_persons[0].contract_id == previous_contract:
                     contract_persons[0].invoice(self, invoice, new_collections)
                     contract_persons.pop(0)
 
                 invoice.create_gl_post(new_gl_posts)
 
-                # Create an invoice for the new contract
-                invoice = component.contract.invoice(date_today, next_invoice_id, self)
+                # Create an invoice for the next contract
+                invoice = component.contract.invoice(
+                    date_today, next_invoice_id, self
+                )
                 new_invoices.append(invoice)
                 next_invoice_id += 1
 
-            component.invoice(next_invoice_line_id, invoice, new_invoice_lines, new_gl_posts)
+            component.invoice(
+                next_invoice_line_id, invoice, new_invoice_lines, new_gl_posts
+            )
             next_invoice_line_id += 1
             previous_contract = component.contract_id
 
+        # End of main program loop
+        # Add new objects to the database
         print("Received all new objects")
-        print("Starting database transaction at " + datetime.datetime.now().__str__())
-        # Save the changes made to the database in one transaction.  If one fails, they will all fail
+        print(
+            "Starting database transaction at "
+            + datetime.datetime.now().__str__()
+        )
+        # Save the changes made to the database in one transaction
+        # If one fails, they will all fail
         with transaction.atomic():
-            print("Starting 'bulk update' of components & contracts at " + datetime.datetime.now().__str__())
+            print(
+                "Starting 'bulk update' of components & contracts at "
+                + datetime.datetime.now().__str__()
+            )
             previous_contract = -1
             for component in components:
                 if component.contract_id != previous_contract:
-                    component.contract.save(update_fields=['balance', 'date_next_prolongation', 'date_prolonged_until'])
+                    component.contract.save(
+                        update_fields=[
+                            'balance',
+                            'date_next_prolongation',
+                            'date_prolonged_until'
+                        ]
+                    )
 
-                component.save(update_fields=['date_next_prolongation', 'date_prolonged_until'])
+                component.save(
+                    update_fields=[
+                        'date_next_prolongation',
+                        'date_prolonged_until'
+                    ]
+                )
                 previous_contract = component.contract_id
 
-            # Add all Invoices to the database with optimized bulk create
-            # Do this before adding InvoiceLines, otherwise their foreign key pointing to an Invoice will fail
-            print("Starting bulk create of invoices at " + datetime.datetime.now().__str__())
+            print(
+                "Starting bulk create of invoices at "
+                + datetime.datetime.now().__str__()
+            )
             Invoice.objects.bulk_create(new_invoices)
-            print("Starting bulk create of invoice lines at " + datetime.datetime.now().__str__())
+            print(
+                "Starting bulk create of invoice lines at "
+                + datetime.datetime.now().__str__()
+            )
             InvoiceLine.objects.bulk_create(new_invoice_lines)
-            print("Starting bulk create of general ledger posts at " + datetime.datetime.now().__str__())
+            print(
+                "Starting bulk create of general ledger posts at "
+                + datetime.datetime.now().__str__()
+            )
             GeneralLedgerPost.objects.bulk_create(new_gl_posts)
-            print("Starting bulk create of collections at " + datetime.datetime.now().__str__())
+            print(
+                "Starting bulk create of collections at "
+                + datetime.datetime.now().__str__()
+            )
             Collection.objects.bulk_create(new_collections)
 
             # Save the tenancy with the new last_invoice_number
-            self.save(update_fields=['last_invoice_number'])
+            self.save(
+                update_fields=[
+                    'last_invoice_number'
+                ]
+            )
 
 
 class TenancyDependentModel(models.Model):
@@ -131,8 +192,9 @@ class TenancyDependentModel(models.Model):
 
 
 class ContractType(TenancyDependentModel):
-    """A company may have contracts for different services, for instance a housing provider which has different
-    contracts for different types of apartments, parking spaces, garages, etc.
+    """A company may have contracts for different services, for instance a
+    housing provider which has different contracts for different types of
+    apartments, parking spaces, garages, etc.
 
     A contract type always corresponds to a tenancy.
     """
@@ -140,8 +202,8 @@ class ContractType(TenancyDependentModel):
     code = models.PositiveIntegerField()
     type = models.CharField(max_length=1)
     description = models.CharField(max_length=50)
-    general_ledger_debit = models.CharField(max_length=10)
-    general_ledger_credit = models.CharField(max_length=10)
+    gl_debit = models.CharField(max_length=10)
+    gl_credit = models.CharField(max_length=10)
 
     def __str__(self):
         return self.description
@@ -152,43 +214,47 @@ class ContractType(TenancyDependentModel):
                 'code': self.code,
                 'type': self.type,
                 'description': self.description,
-                'general ledger debit': self.general_ledger_debit,
-                'general ledger credit': self.general_ledger_credit
+                'general ledger debit': self.gl_debit,
+                'general ledger credit': self.gl_credit
                 }
 
 
 class BaseComponent(TenancyDependentModel):
-    """The base component represents a basic unit for a contract line.  In the case of a housing provider, this could
-    for instance be one line specifying the rent price, and one line specifying any service costs.
+    """The base component represents a basic unit for a contract line.
+    In the case of a housing provider, this could for instance be one line
+    specifying the rent price, and one line specifying any service costs.
 
     A base component always corresponds to a tenancy.
     """
     base_component_id = models.AutoField(primary_key=True)
-    code = models.PositiveIntegerField()  # DESCRIPTION
+    code = models.PositiveIntegerField()
     description = models.CharField(max_length=50)
-    general_ledger_debit = models.CharField(max_length=10)
-    general_ledger_credit = models.CharField(max_length=10)
-    general_ledger_dimension = models.CharField(max_length=10)
+    gl_debit = models.CharField(max_length=10)
+    gl_credit = models.CharField(max_length=10)
+    gl_dimension = models.CharField(max_length=10)
     unit_id = models.CharField(max_length=10, null=True, blank=True)
 
     def __str__(self):
-        return self.description + " - unit " + self.unit_id.__str__() if self.unit_id else self.description
+        return self.description \
+               + " - unit " \
+               + self.unit_id.__str__() if self.unit_id else self.description
 
     def get_details(self):
         """Method to print all fields and their values."""
         return {'tenancy': self.tenancy,
                 'code': self.code,
                 'description': self.description,
-                'general ledger debit': self.general_ledger_debit,
-                'general ledger credit': self.general_ledger_credit,
-                'general ledger dimension': self.general_ledger_dimension,
+                'general ledger debit': self.gl_debit,
+                'general ledger credit': self.gl_credit,
+                'general ledger dimension': self.gl_dimension,
                 'unit id': self.unit_id
                 }
 
 
 class VATRate(TenancyDependentModel):
-    """The VAT rate defines the value added tax charged for a contract line.  In the Netherlands, there are three types
-    of VAT: none (0%), low (9%), or high (21%).
+    """The VAT rate defines the value added tax charged for a contract line.
+    In the Netherlands, there are three types of VAT: none (0%), low (9%),
+    or high (21%).
 
     A VAT rate always corresponds to a tenancy.
     """
@@ -198,11 +264,17 @@ class VATRate(TenancyDependentModel):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     percentage = models.FloatField()
-    general_ledger_account = models.CharField(max_length=10)
-    general_ledger_dimension = models.CharField(max_length=10)
+    gl_account = models.CharField(max_length=10)
+    gl_dimension = models.CharField(max_length=10)
 
     def __str__(self):
-        return "Type " + self.type.__str__() + ": " + self.description + " - " + self.percentage.__str__() + "%"
+        return "Type " \
+               + self.type.__str__() \
+               + ": " \
+               + self.description \
+               + " - " \
+               + self.percentage.__str__() \
+               + "%"
 
     def get_details(self):
         """Method to print all fields and their values."""
@@ -212,14 +284,15 @@ class VATRate(TenancyDependentModel):
                 'start date': self.start_date,
                 'end date': self.end_date,
                 'percentage': self.percentage,
-                'general ledger account': self.general_ledger_account,
-                'general ledger dimension': self.general_ledger_dimension
+                'general ledger account': self.gl_account,
+                'general ledger dimension': self.gl_dimension
                 }
 
 
 class Contract(TenancyDependentModel):
-    """The contract is an agreement between two parties (e.g. a company and a person).  In this case, the person(s)
-    agree to pay some amount per some time period in exchange for a service or product.
+    """The contract is an agreement between two parties (e.g. a company and a
+    person). In this case, the person(s) agree to pay some amount per some time
+    period in exchange for a service or product.
     """
     # Define options for invoicing period
     MONTH = 'M'
@@ -260,9 +333,13 @@ class Contract(TenancyDependentModel):
         default=PER_PERIOD
     )
     # Only not null if invoicing_type = PER_DAY
-    invoicing_amount_of_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    invoicing_amount_of_days = models.PositiveSmallIntegerField(
+        null=True, blank=True
+    )
     # Only null if invoicing_type = PER_DAY
-    invoicing_start_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    invoicing_start_day = models.PositiveSmallIntegerField(
+        null=True, blank=True
+    )
 
     # Dates
     start_date = models.DateField()
@@ -271,8 +348,8 @@ class Contract(TenancyDependentModel):
     date_next_prolongation = models.DateField(null=True)
 
     # General ledger
-    general_ledger_dimension_contract_1 = models.CharField(max_length=10)
-    general_ledger_dimension_contract_2 = models.CharField(max_length=10)
+    gl_dimension_1 = models.CharField(max_length=10)
+    gl_dimension_2 = models.CharField(max_length=10)
 
     # Accumulated fields
     balance = models.FloatField(default=0.0)
@@ -281,7 +358,10 @@ class Contract(TenancyDependentModel):
     total_amount = models.FloatField(default=0.0)
 
     def __str__(self):
-        return "Contact: " + self.tenancy.name + " - " + self.contract_type.description
+        return "Contact: " \
+               + self.tenancy.name \
+               + " - " \
+               + self.contract_type.description
 
     def get_components(self):
         return self.component_set.all()
@@ -298,7 +378,9 @@ class Contract(TenancyDependentModel):
                 return value
 
     def get_details(self):
-        """Method to print all fields and their values."""
+        """Method to print all fields and their values. Method can be removed
+        once CSS for contract details is done.
+        """
         return {'tenancy': self.tenancy,
                 'contract type': self.contract_type,
                 'status': self.status,
@@ -311,8 +393,8 @@ class Contract(TenancyDependentModel):
                 'end date': self.end_date,
                 'end date prolonging': self.date_prolonged_until,
                 'next date prolonging': self.date_next_prolongation,
-                'general ledger dimension 1': self.general_ledger_dimension_contract_1,
-                'general ledger dimension 2': self.general_ledger_dimension_contract_2,
+                'general ledger dimension 1': self.gl_dimension_1,
+                'general ledger dimension 2': self.gl_dimension_2,
                 'base amount': self.base_amount,
                 'VAT amount': self.vat_amount,
                 'total amount': self.total_amount,
@@ -320,6 +402,9 @@ class Contract(TenancyDependentModel):
                 }
 
     def compute_date_next_prolongation(self, previous_date):
+        """Based on the invoicing period and the date of the last invoice,
+        compute the date on which to invoice the contract next.
+        """
         month = previous_date.month
         year = previous_date.year
         day = previous_date.day
@@ -339,7 +424,8 @@ class Contract(TenancyDependentModel):
 
         if month == 2 and day > 28:
             # Correct for February & keep leap years into account
-            # Note that there is no check for year % 100 == 0, which is not a leap year unless year % 400 == 0
+            # Note that there is no check for year % 100 == 0,
+            # which is not a leap year unless year % 400 == 0
             day = 29 if year % 4 == 0 else 28
         elif day == 31 and month in [4, 6, 9, 11]:
             # Correct for months that have 30 days
@@ -348,14 +434,18 @@ class Contract(TenancyDependentModel):
         return datetime.date(year, month, day)
 
     def invoice(self, date_today, next_id, tenancy):
-        # Set the new prolongation date and the date until which the contract is prolonged
+        # Set the new prolongation date
+        # and the date until which the contract is prolonged
         if self.end_date < self.date_next_prolongation:
-            # The contract ended during the previous invoicing period, so definitively end it
+            # The contract ended during the previous invoicing period,
+            # so definitively end it
             self.date_next_prolongation = None
             self.date_prolonged_until = self.end_date
         else:
             self.date_prolonged_until = self.date_next_prolongation
-            self.date_next_prolongation = self.compute_date_next_prolongation(self.date_next_prolongation)
+            self.date_next_prolongation = self.compute_date_next_prolongation(
+                self.date_next_prolongation
+            )
 
         return self.create_invoice(date_today, next_id, tenancy)
 
@@ -369,19 +459,25 @@ class Contract(TenancyDependentModel):
             external_customer_id=self.external_customer_id,
             description="Invoice: " + date_today.__str__(),
             date=date_today,
-            expiration_date=date_today + datetime.timedelta(days=tenancy.days_until_invoice_expiration),
+            expiration_date=date_today + datetime.timedelta(
+                days=tenancy.days_until_invoice_expiration
+            ),
             invoice_number=tenancy.last_invoice_number,
-            general_ledger_account=self.contract_type.general_ledger_debit,
+            gl_account=self.contract_type.gl_debit,
         )
 
     def validate(self):
         if self.contractperson_set.exists():
-            return self.contractperson_set.aggregate(models.Sum('percentage_of_total')).get('percentage_of_total__sum')
+            return self.contractperson_set.aggregate(
+                models.Sum('percentage_of_total')
+            ).get('percentage_of_total__sum')
         return 0
 
 
 class Component(TenancyDependentModel):
-    """A Contract is built up of one or more components.  These 'contract lines' specify the amounts and services."""
+    """A Contract is built up of one or more components.
+    These 'contract lines' specify the amounts and services.
+    """
     component_id = models.AutoField(primary_key=True)
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
     base_component = models.ForeignKey(BaseComponent, on_delete=models.CASCADE)
@@ -414,18 +510,19 @@ class Component(TenancyDependentModel):
             total_amount=total_amount,
             vat_type=self.vat_rate.type,
 
-            general_ledger_account=self.base_component.general_ledger_credit,
-            general_ledger_dimension_base_component=self.base_component.general_ledger_dimension,
-            general_ledger_dimension_contract_1=self.contract.general_ledger_dimension_contract_1,
-            general_ledger_dimension_contract_2=self.contract.general_ledger_dimension_contract_2,
-            general_ledger_dimension_vat=self.vat_rate.general_ledger_dimension,
+            gl_account=self.base_component.gl_credit,
+            gl_dimension_base_component=self.base_component.gl_dimension,
+            gl_dimension_contract_1=self.contract.gl_dimension_1,
+            gl_dimension_contract_2=self.contract.gl_dimension_2,
+            gl_dimension_vat=self.vat_rate.gl_dimension,
 
             number_of_units=self.number_of_units,
             unit_price=unit_amount,
             unit_id=self.unit_id
         )
 
-        invoice.base_amount += total_amount - vat_amount  # To prevent doing maths with units
+        # To prevent doing maths with units
+        invoice.base_amount += total_amount - vat_amount
         invoice.vat_amount += vat_amount
         invoice.total_amount += total_amount
         invoice.balance += total_amount
@@ -442,24 +539,33 @@ class Component(TenancyDependentModel):
         unit_amount = self.unit_amount
 
         if self.end_date < self.date_next_prolongation:
-            # The component ended during the previous invoicing period, so correct the costs for the amount of days
-            days_in_period = (self.date_next_prolongation - self.date_prolonged_until).days
-            days_to_invoice = (self.end_date - self.date_prolonged_until).days
+            # The component ended during the previous invoicing period,
+            # so correct the costs for the amount of days
+            days_in_period = (self.date_next_prolongation
+                              - self.date_prolonged_until).days
+            days_to_invoice = (self.end_date
+                               - self.date_prolonged_until).days
 
             base_amount = base_amount/days_in_period * days_to_invoice
             vat_amount = vat_amount/days_in_period * days_to_invoice
             total_amount = total_amount/days_in_period * days_to_invoice
             unit_amount = unit_amount/days_in_period * days_to_invoice
 
-            # Definitively end this component by setting date_next_prolongation to None
+            # Definitively end this component
+            # by setting date_next_prolongation to None
             self.date_next_prolongation = None
             self.date_prolonged_until = self.end_date
         else:
             self.date_prolonged_until = self.date_next_prolongation
-            self.date_next_prolongation = self.contract.compute_date_next_prolongation(self.date_next_prolongation)
+            self.date_next_prolongation = \
+                self.contract.compute_date_next_prolongation(
+                    self.date_next_prolongation
+                )
 
         self.create_invoice_lines(
-            next_id, invoice, base_amount, vat_amount, total_amount, unit_amount, new_invoice_lines, new_gl_posts
+            next_id, invoice, base_amount, vat_amount,
+            total_amount, unit_amount,
+            new_invoice_lines, new_gl_posts
         )
 
 
@@ -530,7 +636,7 @@ class Invoice(TenancyDependentModel):
     date = models.DateField()
     expiration_date = models.DateField()
     invoice_number = models.PositiveIntegerField()
-    general_ledger_account = models.CharField(max_length=10)
+    gl_account = models.CharField(max_length=10)
 
     def get_invoice_lines(self):
         return self.invoiceline_set.all()
@@ -546,7 +652,7 @@ class Invoice(TenancyDependentModel):
                 'date': self.date,
                 'expiration date': self.expiration_date,
                 'invoice number': self.invoice_number,
-                'general ledger account': self.general_ledger_account,
+                'general ledger account': self.gl_account,
                 }
 
     def create_gl_post(self, new_gl_posts):
@@ -556,11 +662,11 @@ class Invoice(TenancyDependentModel):
                 invoice=self,
                 invoice_line=None,
                 date=self.date,
-                general_ledger_account=self.general_ledger_account,
-                general_ledger_dimension_base_component=None,
-                general_ledger_dimension_contract_1=self.contract.general_ledger_dimension_contract_1,
-                general_ledger_dimension_contract_2=self.contract.general_ledger_dimension_contract_2,
-                general_ledger_dimension_vat=None,
+                gl_account=self.gl_account,
+                gl_dimension_base_component=None,
+                gl_dimension_contract_1=self.contract.gl_dimension_1,
+                gl_dimension_contract_2=self.contract.gl_dimension_2,
+                gl_dimension_vat=None,
                 description="Debtors",
                 amount_debit=self.total_amount,
                 amount_credit=0.0
@@ -577,11 +683,11 @@ class InvoiceLine(models.Model):
     base_amount = models.FloatField(null=True)
     vat_amount = models.FloatField(default=0.0)
     total_amount = models.FloatField(default=0.0)
-    general_ledger_account = models.CharField(max_length=10)
-    general_ledger_dimension_base_component = models.CharField(max_length=10)
-    general_ledger_dimension_contract_1 = models.CharField(max_length=10)
-    general_ledger_dimension_contract_2 = models.CharField(max_length=10)
-    general_ledger_dimension_vat = models.CharField(max_length=10, null=True)
+    gl_account = models.CharField(max_length=10)
+    gl_dimension_base_component = models.CharField(max_length=10)
+    gl_dimension_contract_1 = models.CharField(max_length=10)
+    gl_dimension_contract_2 = models.CharField(max_length=10)
+    gl_dimension_vat = models.CharField(max_length=10, null=True)
     unit_price = models.FloatField(null=True)
     unit_id = models.CharField(max_length=10, null=True)
     number_of_units = models.FloatField(null=True)
@@ -593,39 +699,43 @@ class InvoiceLine(models.Model):
                 invoice=None,  # This could be changed to invoice in needed
                 invoice_line=self,
                 date=self.invoice.date,
-                general_ledger_account=self.general_ledger_account,
-                general_ledger_dimension_base_component=self.general_ledger_dimension_base_component,
-                general_ledger_dimension_contract_1=self.general_ledger_dimension_contract_1,
-                general_ledger_dimension_contract_2=self.general_ledger_dimension_contract_2,
-                general_ledger_dimension_vat=None,
+                gl_account=self.gl_account,
+                gl_dimension_base_component=self.gl_dimension_base_component,
+                gl_dimension_contract_1=self.gl_dimension_contract_1,
+                gl_dimension_contract_2=self.gl_dimension_contract_2,
+                gl_dimension_vat=None,
                 description="Proceeds",
                 amount_credit=self.base_amount,
                 amount_debit=0.0
             )
         )
 
-        # Only create a post for the general ledger for the VAT if VAT is applicable
-        if self.vat_type:
-            new_gl_posts.append(
-                GeneralLedgerPost(
-                    tenancy=self.invoice.tenancy,
-                    invoice=None,
-                    invoice_line=self,
-                    date=self.invoice.date,
-                    general_ledger_account=self.component.vat_rate.general_ledger_account,
-                    general_ledger_dimension_base_component=self.general_ledger_dimension_base_component,
-                    general_ledger_dimension_contract_1=self.general_ledger_dimension_contract_1,
-                    general_ledger_dimension_contract_2=self.general_ledger_dimension_contract_2,
-                    general_ledger_dimension_vat=self.general_ledger_dimension_vat,
-                    description="VAT",
-                    amount_credit=self.vat_amount,
-                    amount_debit=0.0
-                )
+        # Only create a post for the general ledger for the VAT if applicable
+        if not self.vat_type:
+            return
+
+        new_gl_posts.append(
+            GeneralLedgerPost(
+                tenancy=self.invoice.tenancy,
+                invoice=None,
+                invoice_line=self,
+                date=self.invoice.date,
+                gl_account=self.component.vat_rate.gl_account,
+                gl_dimension_base_component=self.gl_dimension_base_component,
+                gl_dimension_contract_1=self.gl_dimension_contract_1,
+                gl_dimension_contract_2=self.gl_dimension_contract_2,
+                gl_dimension_vat=self.gl_dimension_vat,
+                description="VAT",
+                amount_credit=self.vat_amount,
+                amount_debit=0.0
             )
+        )
 
 
 class Collection(TenancyDependentModel):
-    contract_person = models.ForeignKey(ContractPerson, on_delete=models.CASCADE)
+    contract_person = models.ForeignKey(
+        ContractPerson, on_delete=models.CASCADE
+    )
     # Ask if this should cascade
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     payment_method = models.CharField(max_length=1)
@@ -637,13 +747,15 @@ class Collection(TenancyDependentModel):
 
 class GeneralLedgerPost(TenancyDependentModel):
     invoice = models.ForeignKey(Invoice, null=True, on_delete=models.CASCADE)
-    invoice_line = models.ForeignKey(InvoiceLine, null=True, on_delete=models.CASCADE)
+    invoice_line = models.ForeignKey(
+        InvoiceLine, null=True, on_delete=models.CASCADE
+    )
     date = models.DateField()
-    general_ledger_account = models.CharField(max_length=10)
-    general_ledger_dimension_base_component = models.CharField(null=True, max_length=10)
-    general_ledger_dimension_contract_1 = models.CharField(max_length=10)
-    general_ledger_dimension_contract_2 = models.CharField(max_length=10)
-    general_ledger_dimension_vat = models.CharField(null=True, max_length=10)
+    gl_account = models.CharField(max_length=10)
+    gl_dimension_base_component = models.CharField(null=True, max_length=10)
+    gl_dimension_contract_1 = models.CharField(max_length=10)
+    gl_dimension_contract_2 = models.CharField(max_length=10)
+    gl_dimension_vat = models.CharField(null=True, max_length=10)
     description = models.CharField(max_length=30)
     amount_debit = models.FloatField()
     amount_credit = models.FloatField()
