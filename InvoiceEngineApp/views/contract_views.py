@@ -1,4 +1,4 @@
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
 from InvoiceEngineApp.forms import ContractForm, ContractSearchForm
@@ -9,6 +9,24 @@ from InvoiceEngineApp.views.parent_views import (
     ParentUpdateView,
     ParentDeleteView,
 )
+
+import csv
+
+
+def export(request):
+    #res = HttpResponse(content_type='text/csv')
+
+    #writer = csv.writer(res)
+    # writer.writerow()
+
+    #res['Content-Disposition'] = 'attachment; filename="out.csv"'
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="file.csv"'
+    obj = Contract.objects.all()
+    writer = csv.writer(response)
+    for contract in obj:
+        writer.writerow([contract.contract_id, contract.contract_type])
+    return response
 
 
 class ContractListView(ParentListView):

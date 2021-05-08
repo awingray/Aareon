@@ -127,6 +127,8 @@ urlpatterns = [
          name='contract_delete'
          ),
 
+    path('profile/tenancies/export/',
+         export, name='export'),
     # Component pages.
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/create/',
          ComponentCreateView.as_view(),
