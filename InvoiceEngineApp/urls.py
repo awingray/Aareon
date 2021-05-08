@@ -127,7 +127,7 @@ urlpatterns = [
          name='contract_delete'
          ),
 
-    path('profile/tenancies/export/',
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/export/',
          export, name='export'),
     # Component pages.
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/create/',
