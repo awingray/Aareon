@@ -12,75 +12,32 @@ from InvoiceEngineApp.views.parent_views import (
 
 import csv
 
-"""     example export function
-
-Name: Name from cpers
-Adress: Address from cpers
-City: City from cpers
-Payment method: Pay_meth from cpers
-Payment day: Pay_day from cpers
-Invoice number: Inv_nr  from inv
-Invoice date: Inv_date from inv
-**Contract ID: Contr_id from cpers
-Invoice ID: Inv_id from inv
-***Invoice amount: Inv_amt from invinc
-Mandate: Mandaat form cpers
-IBAN: Iban form cpers
-Email: Email form cpers
-Phone: Phone from cpers*
-
-** is it contract id or contract person id?
-
-*** invoice amount == total_amount?
-
- """
-
-
+## example csv export function for contracts
 def export(request, company_id, contract_id, queryset=Contract.objects.all()):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="output.csv"'
-
-    """ filtering the contracts for the tenant """
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="output.csv"'
     qs = queryset.filter(
-        contract_id=contract_id,
-        tenancy__tenancy_id=request.user.username
+        contract_id=contract_id, tenancy__tenancy_id=request.user.username
     )
-
-    """ Retrieve the set for contract persons and invoices from the corresonding contract """
-    cpers = qs.get().get_contract_persons().get()
-    invs = qs.get().get_invoices().get()
-    print(qs.get(), invs)
-
+    opts = qs.model._meta
     writer = csv.writer(response)
-    # Use exclude to omit the fields instead of manually define the field names - Awin
-    fields = ['name', 'address', 'city', 'payment_method', 'payment_day',
-              'invoice_number', 'date', 'contract_person_id', 'invoice_id', 'total_amount',
-              'mandate', 'iban', 'email']
-
-    writer.writerow(fields)
+    field_names = [field.name for field in opts.fields]
+    writer.writerow(field_names)
 
     for obj in qs:
-
-        cpers = obj.get_contract_persons().get()
-        invs = obj.get_invoices().get()
-
-        val = [cpers.name, cpers.address, cpers.city, cpers.payment_method, cpers.payment_day,
-               invs.invoice_number, invs.date, cpers.contract_person_id, invs.invoice_id,
-               invs.total_amount, cpers.mandate, cpers.iban, cpers.email]
-
-        writer.writerow(val)
+        writer.writerow([getattr(obj, field) for field in field_names])
 
     return response
 
 
 class ContractListView(ParentListView):
-    template_name = 'InvoiceEngineApp/contract_list.html'
+    template_name = "InvoiceEngineApp/contract_list.html"
     form_class = ContractSearchForm
     model = Contract
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = self.form_class(self.request.GET)
+        context["form"] = self.form_class(self.request.GET)
         return context
 
     def get_queryset(self):
@@ -95,7 +52,7 @@ class ContractListView(ParentListView):
 
 
 class ContractCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+    template_name = "InvoiceEngineApp/create.html"
     form_class = ContractForm
 
     def __init__(self):
@@ -114,7 +71,8 @@ class ContractDetailView(ParentListView):
     """DetailView for contract.  It is implemented as a ListView because is has to list all invoices
     corresponding to the contract.
     """
-    template_name = 'InvoiceEngineApp/contract_details.html'
+
+    template_name = "InvoiceEngineApp/contract_details.html"
 
     def __init__(self):
         super().__init__()
@@ -123,10 +81,9 @@ class ContractDetailView(ParentListView):
         self.object = None
 
     def get_object(self, queryset=Contract.objects.all()):
-        contract_id = self.kwargs.get('contract_id')
+        contract_id = self.kwargs.get("contract_id")
         qs = queryset.filter(
-            contract_id=contract_id,
-            tenancy__tenancy_id=self.request.user.username
+            contract_id=contract_id, tenancy__tenancy_id=self.request.user.username
         )
         return get_object_or_404(qs)
 
@@ -136,16 +93,13 @@ class ContractDetailView(ParentListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['object'] = self.object
-        context['list_page'] = [
-            self.list_page,
-            self.kwargs.get('company_id')
-        ]
+        context["object"] = self.object
+        context["list_page"] = [self.list_page, self.kwargs.get("company_id")]
         return context
 
 
 class ContractUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
+    template_name = "InvoiceEngineApp/update.html"
     form_class = ContractForm
 
     def __init__(self):
@@ -154,7 +108,7 @@ class ContractUpdateView(ParentUpdateView):
         self.list_page = "contract_list"
 
     def get_object(self, queryset=Contract.objects.all()):
-        contract_id = self.kwargs.get('contract_id')
+        contract_id = self.kwargs.get("contract_id")
         qs = queryset.filter(contract_id=contract_id)
         qs = super().filter_by_tenancy(qs)
         return get_object_or_404(qs)
@@ -167,7 +121,7 @@ class ContractUpdateView(ParentUpdateView):
 
 
 class ContractDeleteView(ParentDeleteView):
-    template_name = 'InvoiceEngineApp/delete.html'
+    template_name = "InvoiceEngineApp/delete.html"
 
     def __init__(self):
         super().__init__()
@@ -175,7 +129,7 @@ class ContractDeleteView(ParentDeleteView):
         self.list_page = "contract_list"
 
     def get_object(self, queryset=Contract.objects.all()):
-        contract_id = self.kwargs.get('contract_id')
+        contract_id = self.kwargs.get("contract_id")
         qs = queryset.filter(contract_id=contract_id)
         qs = super().filter_by_tenancy(qs)
         return get_object_or_404(qs)

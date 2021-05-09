@@ -39,6 +39,10 @@ urlpatterns = [
          name='invoice_contracts'
          ),
 
+    path('profile/tenancies/<int:company_id>/output/',
+         output, name='output'
+         ),
+
     # Contract type pages.
     path('profile/tenancies/<int:company_id>/contract_types/',
          ContractTypeListView.as_view(),
