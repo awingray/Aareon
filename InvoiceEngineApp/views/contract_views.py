@@ -29,8 +29,6 @@ IBAN: Iban form cpers
 Email: Email form cpers
 Phone: Phone from cpers*
 
-
-
 ** is it contract id or contract person id?
 
 *** invoice amount == total_amount?
@@ -41,23 +39,35 @@ Phone: Phone from cpers*
 def export(request, company_id, contract_id, queryset=Contract.objects.all()):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="output.csv"'
+
+    """ filtering the contracts for the tenant """
     qs = queryset.filter(
         contract_id=contract_id,
         tenancy__tenancy_id=request.user.username
     )
+
+    """ Retrieve the set for contract persons and invoices from the corresonding contract """
     cpers = qs.get().get_contract_persons().get()
     invs = qs.get().get_invoices().get()
+    print(qs.get(), invs)
+
     writer = csv.writer(response)
     # Use exclude to omit the fields instead of manually define the field names - Awin
     fields = ['name', 'address', 'city', 'payment_method', 'payment_day',
               'invoice_number', 'date', 'contract_person_id', 'invoice_id', 'total_amount',
               'mandate', 'iban', 'email']
+
     writer.writerow(fields)
-    val = [cpers.name, cpers.address, cpers.city, cpers.payment_method, cpers.payment_day,
-           invs.invoice_number, invs.date, cpers.contract_person_id, invs.invoice_id, invs.total_amount,
-           cpers.mandate, cpers.iban, cpers.email]
-    print(val)
+
     for obj in qs:
+
+        cpers = obj.get_contract_persons().get()
+        invs = obj.get_invoices().get()
+
+        val = [cpers.name, cpers.address, cpers.city, cpers.payment_method, cpers.payment_day,
+               invs.invoice_number, invs.date, cpers.contract_person_id, invs.invoice_id,
+               invs.total_amount, cpers.mandate, cpers.iban, cpers.email]
+
         writer.writerow(val)
 
     return response

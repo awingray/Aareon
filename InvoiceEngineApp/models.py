@@ -392,10 +392,10 @@ class Contract(TenancyDependentModel):
             general_ledger_account=self.contract_type.general_ledger_debit,
         )
 
+    """ This function is used to make sure the aggregate "percentage" doesn't exceed 100 """
+
     def validate(self):
-        if self.contractperson_set.exists():
-            return self.contractperson_set.aggregate(models.Sum('percentage_of_total')).get('percentage_of_total__sum')
-        return 0
+        return self.contractperson_set.aggregate(models.Sum('percentage_of_total')).get('percentage_of_total__sum') if self.contractperson_set.exists() else 0
 
 
 class Component(TenancyDependentModel):
