@@ -522,6 +522,11 @@ class ContractPerson(TenancyDependentModel):
     def __str__(self):
         return "contract person " + self.name
 
+    def get_details(self):
+        return {'name': self.name, 'address': self.address, 'city': self.city,
+                'payment_method': self.payment_method, 'payment_day': self.payment_day,
+                'contract_person_id': self.contract_person_id, 'mandate': self.mandate, 'iban': self.iban, 'email': self.email}
+
     def invoice(self, tenancy, invoice, new_collections):
         """Create collection objects when the invoice has been finished."""
         new_collections.append(

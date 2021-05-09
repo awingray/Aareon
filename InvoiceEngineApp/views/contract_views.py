@@ -12,7 +12,30 @@ from InvoiceEngineApp.views.parent_views import (
 
 import csv
 
-"""     example export function    """
+"""     example export function
+
+Name: Name from cpers
+Adress: Address from cpers
+City: City from cpers
+Payment method: Pay_meth from cpers
+Payment day: Pay_day from cpers
+Invoice number: Inv_nr  from inv
+Invoice date: Inv_date from inv
+**Contract ID: Contr_id from cpers
+Invoice ID: Inv_id from inv
+***Invoice amount: Inv_amt from invinc
+Mandate: Mandaat form cpers
+IBAN: Iban form cpers
+Email: Email form cpers
+Phone: Phone from cpers*
+
+
+
+** is it contract id or contract person id?
+
+*** invoice amount == total_amount?
+
+ """
 
 
 def export(request, company_id, contract_id, queryset=Contract.objects.all()):
@@ -22,13 +45,20 @@ def export(request, company_id, contract_id, queryset=Contract.objects.all()):
         contract_id=contract_id,
         tenancy__tenancy_id=request.user.username
     )
-    opts = qs.model._meta
+    cpers = qs.get().get_contract_persons().get()
+    invs = qs.get().get_invoices().get()
     writer = csv.writer(response)
-    field_names = [field.name for field in opts.fields]
-    writer.writerow(field_names)
-
+    # Use exclude to omit the fields instead of manually define the field names - Awin
+    fields = ['name', 'address', 'city', 'payment_method', 'payment_day',
+              'invoice_number', 'date', 'contract_person_id', 'invoice_id', 'total_amount',
+              'mandate', 'iban', 'email']
+    writer.writerow(fields)
+    val = [cpers.name, cpers.address, cpers.city, cpers.payment_method, cpers.payment_day,
+           invs.invoice_number, invs.date, cpers.contract_person_id, invs.invoice_id, invs.total_amount,
+           cpers.mandate, cpers.iban, cpers.email]
+    print(val)
     for obj in qs:
-        writer.writerow([getattr(obj, field) for field in field_names])
+        writer.writerow(val)
 
     return response
 
