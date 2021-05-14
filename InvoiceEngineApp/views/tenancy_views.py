@@ -11,7 +11,7 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
 )
-from InvoiceEngineApp.models import Tenancy, Collection
+from InvoiceEngineApp.models import Tenancy, Collection, Contract
 from InvoiceEngineApp.forms import TenancyAdministratorForm, TenancySubscriberForm
 
 import csv
@@ -42,59 +42,15 @@ Phone: Phone from cpers*
 
 def output(request, company_id, queryset=Collection.objects.all()):
     response = HttpResponse(content_type="text/csv")
-    response["pipContent-Disposition"] = 'attachment; filename="output.csv"'
-
-    ### filtering the contracts for the tenant
-    """     qs = queryset.filter(
-        tenancy__company_id=company_id, tenancy__tenancy_id=request.user.username
-    ) """
-    # Retrieve the set for contract persons and invoices from the corresonding contract
-    # print(cpers, invs)
-    qs = queryset
-    print(qs)
+    response["Content-Disposition"] = 'attachment; filename="output.csv"'
+    qs = queryset.filter(tenancy__tenancy_id=request.user.username)
+    opts = qs.model._meta
     writer = csv.writer(response)
-    # Use exclude to omit the fields instead of manually define the field names - Awin
-    fields = [
-        "name",
-        "address",
-        "city",
-        "payment_method",
-        "payment_day",
-        "invoice_number",
-        "date",
-        "contract_person_id",
-        "invoice_id",
-        "total_amount",
-        "mandate",
-        "iban",
-        "email",
-    ]
+    field_names = [field.name for field in opts.fields]
+    writer.writerow(field_names)
 
-    writer.writerow(fields)
-    # print(qs)
     for obj in qs:
-
-        cpers = obj.get_contract_persons()
-        invs = obj.get_invoices()
-
-        """         val = [
-            cpers.name,
-            cpers.address,
-            cpers.city,
-            cpers.payment_method,
-            cpers.payment_day,
-            invs.invoice_number,
-            invs.date,
-            cpers.contract_person_id,
-            invs.invoice_id,
-            invs.total_amount,
-            cpers.mandate,
-            cpers.iban,
-            cpers.email,
-        ] """
-        val = []
-
-        writer.writerow(val)
+        writer.writerow([getattr(obj, field) for field in field_names])
 
     return response
 
