@@ -1,5 +1,7 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
+<a class="nav-link" href="{{request.META.HTTP_REFERER|escape}}">Return</a>
+
 {% block content %}
     <div class="col">
         <div class="card shadow p-3 mb-5 bg-body rounded">
