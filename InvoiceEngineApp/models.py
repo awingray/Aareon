@@ -510,7 +510,6 @@ class Component(TenancyDependentModel):
         vat_amount = self.vat_amount
         total_amount = self.total_amount
         unit_amount = self.unit_amount
-
         if self.end_date < self.date_next_prolongation:
             # The component ended during the previous invoicing period, so correct the costs for the amount of days
             days_in_period = (
@@ -727,6 +726,17 @@ class Collection(TenancyDependentModel):
     mandate = models.PositiveIntegerField()
     iban = models.CharField(max_length=17)
     amount = models.FloatField(default=0.0)
+
+    def get_details(self):
+        return {
+            "contract_person": self.contract_person,
+            "invoice": self.invoice,
+            "payment_method": self.payment_method,
+            "payment_day": self.payment_day,
+            "mandate": self.mandate,
+            "iban": self.iban,
+            "amount": self.amount,
+        }
 
 
 class GeneralLedgerPost(TenancyDependentModel):

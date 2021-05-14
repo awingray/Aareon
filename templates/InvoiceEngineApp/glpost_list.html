@@ -15,7 +15,7 @@
             <h5 class="card-title"> {{ object.description }}</h5>
             <ul class="nav">
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{% url 'glpost_details' company_id object.general_ledger_post_id %}">Details</a>
+                    <a class="nav-link active" aria-current="page" href="{% url 'glpost_details' company_id object.id %}">Details</a>
                 </li>
             </ul>
         </div>
