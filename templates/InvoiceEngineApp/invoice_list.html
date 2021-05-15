@@ -9,84 +9,58 @@
 
 
 {% block content %}
- <div class="row">
-        <div class="col-lg-4">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Invoice number</h5>
-        </div>
-        <div class="col-sm-1 text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Description</h5>
-        </div>
-        <div class="col text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Date</h5>
-        </div>
-        <div class="col text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Expiration date</h5>
-        </div>
-        <div class="col text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Base amount</h5>
-        </div>
-        <div class="col text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT</h5>
-        </div>
-        <div class="col text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total amount</h5>
-        </div>
-        <div class="col text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Balance</h5>
-        </div>
-        <div class="col text-left">
-            <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment received</h5>
-        </div>
-        {# Empty column header for update & delete links #}
-        <div class="col"></div>
-    </div>
-    {% for invoice in page_obj %}
-    <div class="card shadow p-1 mb-2 bg-body rounded">
+
+
+    <div class="card shadow p-3 mb-5 bg-body rounded">
         <div class="card-body">
             <div class="row">
-                <div class="col-lg-4">
-                    <h5 class="card-title"> {{ invoice.invoice_number }}</h5>
-                </div>
-                <div class="col-sm-1 text-left">
-                    <p>{{ invoice.description }}</p>
-                </div>
-                <div class="col text-left">
-                    <p>{{ invoice.date }}</p>
-                </div>
-                <div class="col text-left">
-                    <p>{{ invoice.expiration_date }}</p>
-                </div>
-                <div class="col text-left">
-                    <p>€{{ invoice.base_amount|floatformat:2 }}</p>
-                </div>
-                <div class="col text-left">
-                    <p>€{{ invoice.vat_amount|floatformat:2 }}</p>
-                </div>
-                <div class="col text-left">
-                    <p>€{{ invoice.total_amount|floatformat:2 }}</p>
-                </div>
-                <div class="col text-left">
-                    <p>€{{ invoice.balance|floatformat:2 }}</p>
-                </div>
-                <div class="col text-left">
-                    <p>Payment received?</p>
-                </div>
-                {# Details link #}
                 <div class="col">
-                    <ul class="nav">
-                        <li class="nav-item">
-                            <a class="nav-link"
-                                href="{% url 'invoice_details' company_id invoice.invoice_id %}">Details</a>
-                        </li>
-                    </ul>
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <thead>
+                                <tr class="border-bottom">
+                                    <td >Invoice Number</td>
+                                    <td>Description</td>
+                                    <td>Date</td>
+                                    <td>Expiration Date</td>
+                                    <td>Base amount</td>
+                                    <td>VAT</td>
+                                    <td>Total amount</td>
+                                    <td>Balance</td>
+                                    <td>Payment Received</td>
+
+
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for object in page_obj %}
+                                <tr>
+                                    <td> {{object.invoice_number}}</td>
+                                    <td> {{object.description}}</td>
+                                    <td>{{object.date}}</td>
+                                    <td>{{object.expiration_date }}</td>
+                                    <td data-align="right">€{{ object.base_amount|floatformat:2 }}</td>
+                                    <td data-align="right">€{{ object.vat_amount|floatformat:2 }}</td>
+                                    <td data-align="right">€{{ object.total_amount|floatformat:2 }}</td>
+                                    <td data-align="right">€{{ object.balance|floatformat:2 }}</td>
+                                    <td>Payment received?</td>
+                                    <td><a class="nav-link" href="{% url 'invoice_details' company_id object.invoice_id %}">Details</a></td>
+
+                                </tr>
+                                {% endfor %}
+
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
+
             </div>
+
         </div>
+
     </div>
 
-    {% empty %}
-    <p>No invoices yet</p>
-    {% endfor %}
     <!-- Create the pagination back and next links  -->
     <div class="pagination">
         <span class="step-links">

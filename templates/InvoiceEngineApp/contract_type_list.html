@@ -1,57 +1,47 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block navbar %}
-    <li class="nav-item">
-        <a class="nav-link" href="{% url 'contract_type_create' company_id %}">Create new contract type</a>
-    </li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'contract_type_create' company_id %}">Create new contract type</a>
+</li>
 
-    <li class="nav-item">
-        <a class="nav-link" href="{% url 'tenancy_list' %}">Company list</a>
-    </li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'tenancy_list' %}">Company list</a>
+</li>
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-        {# Table header #}
-        <div class="row">
-            <div class="col-lg-4">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Description</h5>
-            </div>
-            <div class="col-sm-1 text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Code</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Type</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger debit</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger credit</h5>
-            </div>
-            <div class="col"></div>
-            {# Empty column header for update & delete links #}
-            <div class="col"></div>
-        </div>
+<div class="container">
 
-        {# Table contents #}
-        {% for object in page_obj %}
-            <div class="card shadow p-1 mb-2 bg-body rounded">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-4">
-                            <h5 class="card-title"> {{ object.description }}</h5>
-                        </div>
-                        <div class="col-sm-1 text-left">
-                            <p>{{ object.code }}</p>
-                        </div>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ object.general_ledger_credit }}</p>
-                        </div>
-                        <div class="col"></div>
-                        {# Update and delete links #}
-                        <div class="col">
+    {% for object in page_obj %}
+    <div class="card shadow p-3 mb-5 bg-body rounded">
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <td>Description</td>
+                                    <td>Code</td>
+                                    <td>Type</td>
+                                    <td>General ledger debit</td>
+                                    <td>General ledger credit</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td> {{object.description}}</td>
+                                    <td> {{object.code}}</td>
+                                    <td>{{object.type}}</td>
+                                    <td>{{object.general_ledger_debit }}</td>
+                                    <td>{{object.general_ledger_credit }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                             <ul class="nav">
                                 <li class="nav-item">
                                     <a class="nav-link" href="{% url 'contract_type_update' company_id object.contract_type_id %}">Update</a>
@@ -60,22 +50,21 @@
                                     <a class="nav-link" href="{% url 'contract_type_delete' company_id object.contract_type_id %}">Delete</a>
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                </div>
+
+
             </div>
 
-        {% empty %}
-            <p>No objects yet</p>
-        {% endfor %}
+        </div>
+
     </div>
+    {% endfor %}
 
     {# Pagination back and next links #}
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
-                <a href="?page=1">&laquo; first</a>
-                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
             {% endif %}
 
             <span class="current">
@@ -83,9 +72,10 @@
             </span>
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}">next</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
             {% endif %}
         </span>
     </div>
-{% endblock %}
+</div>
+    {% endblock %}
