@@ -49,22 +49,24 @@
                             <p>{{ object.type }}</p>
                         </div>
                         <div class="col text-left">
-                            <p>{{ object.general_ledger_debit }}</p>
+                            <p>{{ object.gl_debit }}</p>
                         </div>
                         <div class="col text-left">
-                            <p>{{ object.general_ledger_credit }}</p>
+                            <p>{{ object.gl_credit }}</p>
                         </div>
                         <div class="col"></div>
                         {# Update and delete links #}
                         <div class="col">
-                            <ul class="nav">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'contract_type_update' company_id object.contract_type_id %}">Update</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'contract_type_delete' company_id object.contract_type_id %}">Delete</a>
-                                </li>
-                            </ul>
+                            {% if object.can_update_or_delete %}
+                                <ul class="nav">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'contract_type_update' company_id object.contract_type_id %}">Update</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'contract_type_delete' company_id object.contract_type_id %}">Delete</a>
+                                    </li>
+                                </ul>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

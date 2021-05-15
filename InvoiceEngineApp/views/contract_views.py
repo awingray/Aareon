@@ -1,8 +1,13 @@
-from django.http import HttpResponseRedirect
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 
-from InvoiceEngineApp.forms import ContractForm, ContractSearchForm
-from InvoiceEngineApp.models import Contract, Invoice
+from InvoiceEngineApp.forms import (
+    ContractForm,
+    ContractSearchForm,
+    ContractActivationForm,
+    ContractDeactivationForm
+)
+from InvoiceEngineApp.models import Contract
 from InvoiceEngineApp.views.parent_views import (
     ParentListView,
     ParentCreateView,
@@ -42,15 +47,22 @@ class ContractCreateView(ParentCreateView):
         self.list_page = "contract_list"
 
     def get_form(self, form_class=None):
-        """Overloaded to filter the selection of contract types based on the tenancy."""
+        """Overloaded to filter the selection of contract types based on the
+        tenancy.
+        """
         form = super().get_form()
         form.filter_selectors(self.tenancy)
         return form
 
+    def form_valid(self, form):
+        self.object = form.instance
+        self.object.create(self.tenancy)
+        return super().form_valid(form)
+
 
 class ContractDetailView(ParentListView):
-    """DetailView for contract.  It is implemented as a ListView because is has to list all invoices
-    corresponding to the contract.
+    """DetailView for contract.  It is implemented as a ListView because
+    is has to list all invoices corresponding to the contract.
     """
     template_name = 'InvoiceEngineApp/contract_details.html'
 
@@ -95,10 +107,17 @@ class ContractUpdateView(ParentUpdateView):
         contract_id = self.kwargs.get('contract_id')
         qs = queryset.filter(contract_id=contract_id)
         qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+        contract = get_object_or_404(qs)
+
+        if contract.can_update_or_delete():
+            raise Http404('No Contract matches the given query.')
+
+        return contract
 
     def get_form(self, form_class=None):
-        """Overloaded to filter the selection of contract types based on the tenancy."""
+        """Overloaded to filter the selection of contract types based on the
+        tenancy.
+        """
         form = super().get_form()
         form.filter_selectors(self.object.tenancy)
         return form
@@ -116,15 +135,53 @@ class ContractDeleteView(ParentDeleteView):
         contract_id = self.kwargs.get('contract_id')
         qs = queryset.filter(contract_id=contract_id)
         qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+        contract = get_object_or_404(qs)
 
-    def delete(self, request, *args, **kwargs):
-        contract = self.get_object()
+        if contract.can_update_or_delete():
+            raise Http404('No Contract matches the given query.')
 
-        # Update the tenancy: there is one fewer contract now
-        contract.tenancy.number_of_contracts -= 1
-        contract.tenancy.clean()
-        contract.tenancy.save()
+        return contract
 
-        contract.delete()
-        return HttpResponseRedirect(self.get_success_url())
+
+class ContractActivationView(ParentUpdateView):
+    template_name = 'InvoiceEngineApp/update.html'
+    form_class = ContractActivationForm
+
+    def __init__(self):
+        super().__init__()
+        self.object_type = "contract"
+        self.list_page = "contract_list"
+
+    def get_object(self, queryset=Contract.objects.all()):
+        contract_id = self.kwargs.get('contract_id')
+        qs = queryset.filter(contract_id=contract_id)
+        qs = super().filter_by_tenancy(qs)
+        contract = get_object_or_404(qs)
+
+        if contract.validate() != 100:
+            raise Http404('No Contract matches the given query.')
+
+        return contract
+
+
+class ContractDeactivationView(ParentUpdateView):
+    template_name = 'InvoiceEngineApp/update.html'
+    form_class = ContractDeactivationForm
+
+    def __init__(self):
+        super().__init__()
+        self.object_type = "contract"
+        self.list_page = "contract_list"
+
+    def get_object(self, queryset=Contract.objects.all()):
+        contract_id = self.kwargs.get('contract_id')
+        qs = queryset.filter(contract_id=contract_id)
+        qs = super().filter_by_tenancy(qs)
+        contract = get_object_or_404(qs)
+
+        if not contract.start_date \
+                or contract.can_update_or_delete() \
+                or contract.end_date:
+            raise Http404('No Contract matches the given query.')
+
+        return contract

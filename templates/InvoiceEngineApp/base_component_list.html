@@ -48,27 +48,29 @@
                             <p>{{ object.code }}</p>
                         </div>
                         <div class="col text-left">
-                            <p>{{ object.general_ledger_debit }}</p>
+                            <p>{{ object.gl_debit }}</p>
                         </div>
                         <div class="col text-left">
-                            <p>{{ object.general_ledger_credit }}</p>
+                            <p>{{ object.gl_credit }}</p>
                         </div>
                         <div class="col text-left">
-                            <p>{{ object.general_ledger_dimension }}</p>
+                            <p>{{ object.gl_dimension }}</p>
                         </div>
                         <div class="col text-left">
                             <p>{{ object.unit_id }}</p>
                         </div>
                         {# Update and delete links #}
                         <div class="col">
-                            <ul class="nav">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'base_component_update' company_id object.base_component_id %}">Update</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'base_component_delete' company_id object.base_component_id %}">Delete</a>
-                                </li>
-                            </ul>
+                            {% if object.can_update_or_delete %}
+                                <ul class="nav">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'base_component_update' company_id object.base_component_id %}">Update</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'base_component_delete' company_id object.base_component_id %}">Delete</a>
+                                    </li>
+                                </ul>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

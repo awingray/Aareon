@@ -1,7 +1,8 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 
 from InvoiceEngineApp.forms import ContractPersonForm
-from InvoiceEngineApp.models import ContractPerson, Contract
+from InvoiceEngineApp.models import ContractPerson
 from InvoiceEngineApp.views.parent_views import (
     ParentCreateView,
     ParentUpdateView,
@@ -21,16 +22,22 @@ class ContractPersonCreateView(ParentCreateView):
     def post(self, request, *args, **kwargs):
         """
         Handle POST requests: instantiate a form instance with the passed
-        POST variables, set the tenancy and the contract, and then check if it's valid.
+        POST variables, set the tenancy and the contract, and then check if
+        it's valid.
         """
         self.object = None
 
         form = self.get_form()
-        form.set_dependencies(self.tenancy, self.kwargs.get('contract_id'))
+        form.instance.create(self.tenancy, self.kwargs.get('contract_id'))
         if form.is_valid():
             return self.form_valid(form)
         else:
             return self.form_invalid(form)
+
+    def form_valid(self, form):
+        self.object = form.instance
+        self.object.create(self.tenancy, self.kwargs.get('contract_id'))
+        return super().form_valid(form)
 
 
 class ContractPersonUpdateView(ParentUpdateView):
@@ -46,7 +53,12 @@ class ContractPersonUpdateView(ParentUpdateView):
         contract_person_id = self.kwargs.get('contract_person_id')
         qs = queryset.filter(contract_person_id=contract_person_id)
         qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+        contract_person = get_object_or_404(qs)
+
+        if not contract_person.can_update_or_delete():
+            raise Http404('No Contract person matches the given query.')
+
+        return contract_person
 
 
 class ContractPersonDeleteView(ParentDeleteView):
@@ -61,4 +73,9 @@ class ContractPersonDeleteView(ParentDeleteView):
         contract_person_id = self.kwargs.get('contract_person_id')
         qs = queryset.filter(contract_person_id=contract_person_id)
         qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+        contract_person = get_object_or_404(qs)
+
+        if not contract_person.can_update_or_delete():
+            raise Http404('No Contract person matches the given query.')
+
+        return contract_person

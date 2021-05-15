@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 
 from InvoiceEngineApp.forms import VATRateForm
@@ -7,13 +8,16 @@ from InvoiceEngineApp.views.parent_views import (
     ParentCreateView,
     ParentUpdateView,
     ParentDeleteView,
-    ParentDetailView
 )
 
 
 class VATRateListView(ParentListView):
     template_name = 'InvoiceEngineApp/vat_rate_list.html'
     model = VATRate
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.order_by('type', 'start_date')
 
 
 class VATRateCreateView(ParentCreateView):
@@ -25,20 +29,10 @@ class VATRateCreateView(ParentCreateView):
         self.object_type = "VAT rate"
         self.list_page = "vat_rate_list"
 
-
-class VATRateDetailView(ParentDetailView):
-    template_name = 'InvoiceEngineApp/details.html'
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "VAT rate"
-        self.list_page = "vat_rate_list"
-
-    def get_object(self, queryset=VATRate.objects.all()):
-        vat_rate_id = self.kwargs.get('vat_rate_id')
-        qs = queryset.filter(vat_rate_id=vat_rate_id)
-        qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+    def form_valid(self, form):
+        self.object = form.instance
+        self.object.create(self.tenancy)
+        return super().form_valid(form)
 
 
 class VATRateUpdateView(ParentUpdateView):
@@ -47,14 +41,20 @@ class VATRateUpdateView(ParentUpdateView):
 
     def __init__(self):
         super().__init__()
-        self.object_type = "VAT rate"
         self.list_page = "vat_rate_list"
 
     def get_object(self, queryset=VATRate.objects.all()):
         vat_rate_id = self.kwargs.get('vat_rate_id')
-        qs = queryset.filter(vat_rate_id=vat_rate_id)
+        qs = queryset.filter(
+            vat_rate_id=vat_rate_id
+        )
         qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+        vat_rate = get_object_or_404(qs)
+        if not vat_rate.can_update_or_delete():
+            # Maybe make a page for this that informs the user of which
+            # components prevent this VAT rate from being deactivated
+            raise Http404('No VAT rate matches the given query.')
+        return vat_rate
 
 
 class VATRateDeleteView(ParentDeleteView):
@@ -67,6 +67,13 @@ class VATRateDeleteView(ParentDeleteView):
 
     def get_object(self, queryset=VATRate.objects.all()):
         vat_rate_id = self.kwargs.get('vat_rate_id')
-        qs = queryset.filter(vat_rate_id=vat_rate_id)
+        qs = queryset.filter(
+            vat_rate_id=vat_rate_id
+        )
         qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+        vat_rate = get_object_or_404(qs)
+        if not vat_rate.can_update_or_delete():
+            # Maybe make a page for this that informs the user of which
+            # components prevent this VAT rate from being deactivated
+            raise Http404('No VAT rate matches the given query.')
+        return vat_rate

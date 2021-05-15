@@ -19,11 +19,9 @@ class ParentListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def filter_by_tenancy(self, qs_to_filter):
-        """Filter the full queryset by tenancy.  This method also makes sure that someone without access to the tenancy
-        cannot view the page.
+        """Filter the full queryset by tenancy.  This method also makes sure
+        that someone without access to the tenancy cannot view the page.
         """
-        # The user will not know if a tenancy with this company_id exists in the database.
-        # They will just know that they cannot find a tenancy with that company_id.
         tenancy = get_object_or_404(
             Tenancy,
             company_id=self.kwargs.get('company_id'),
@@ -41,12 +39,14 @@ class ParentListView(LoginRequiredMixin, ListView):
         """Add information to send to the HTML environment."""
         context = super().get_context_data(**kwargs)
         context['object_list'] = self.get_queryset()
-        context['company_id'] = self.kwargs.get('company_id')  # Needed to link to other pages with company_id in URL.
+        context['company_id'] = self.kwargs.get('company_id')
         return context
 
 
 class ParentCreateView(LoginRequiredMixin, CreateView):
-    """This class defines common methods of CreateViews used in this project."""
+    """This class defines common methods of CreateViews used in
+    this project.
+    """
     # Redirect to the login page if the user is not logged in.
     login_url = '/login/'
 
@@ -57,7 +57,9 @@ class ParentCreateView(LoginRequiredMixin, CreateView):
         self.tenancy = None
 
     def dispatch(self, request, *args, **kwargs):
-        """"Perform a check whether this user has access to this tenancy. If so, save the tenancy for later use."""
+        """"Perform a check whether this user has access to this tenancy.
+        If so, save the tenancy for later use.
+        """
         self.tenancy = get_object_or_404(
             Tenancy,
             company_id=self.kwargs.get('company_id'),
@@ -75,11 +77,6 @@ class ParentCreateView(LoginRequiredMixin, CreateView):
         ]
         return context
 
-    def form_valid(self, form):
-        """Overload the form valid function to perform additional logic in the form."""
-        form.finalize_creation(self)
-        return super().form_valid(form)
-
     def get_success_url(self):
         return reverse(
             self.list_page,
@@ -88,7 +85,9 @@ class ParentCreateView(LoginRequiredMixin, CreateView):
 
 
 class ParentDetailView(LoginRequiredMixin, DetailView):
-    """This class defines common methods of UpdateViews used in this project."""
+    """This class defines common methods of UpdateViews used in
+    this project.
+    """
     # Redirect to the login page if the user is not logged in.
     login_url = '/login/'
 
@@ -111,29 +110,27 @@ class ParentDetailView(LoginRequiredMixin, DetailView):
 
 
 class ParentUpdateView(LoginRequiredMixin, UpdateView):
-    """This class defines common methods of UpdateViews used in this project."""
+    """This class defines common methods of UpdateViews used
+    in this project.
+    """
     # Redirect to the login page if the user is not logged in.
     login_url = '/login/'
 
     def __init__(self):
         super().__init__()
-        self.object_type = None
         self.list_page = None
 
     def filter_by_tenancy(self, queryset):
         return queryset.filter(tenancy__tenancy_id=self.request.user.username)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['object_type'] = self.object_type
-        return context
 
     def get_success_url(self):
         return reverse(self.list_page, args=[self.kwargs.get('company_id')])
 
 
 class ParentDeleteView(LoginRequiredMixin, DeleteView):
-    """This class defines common methods of DeleteViews used in this project."""
+    """This class defines common methods of DeleteViews used
+    in this project.
+    """
     # Redirect to the login page if the user is not logged in.
     login_url = '/login/'
 
