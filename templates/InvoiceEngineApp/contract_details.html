@@ -1,102 +1,180 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block navbar %}
-<li class="nav-item">
-    {% if list_page|length == 1 %}
-    <a class="nav-link" aria-current="page" href="{% url list_page.0 %}">Return</a>
+    {% if object.start_date %}
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'component_create' company_id object.contract_id %}">Create new component</a>
+        </li>
     {% else %}
-    <a class="nav-link" aria-current="page" href="{% url list_page.0 list_page.1 %}">Return</a>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'contract_person_create' company_id object.contract_id %}">Create new person</a>
+        </li>
     {% endif %}
-</li>
+    <li class="nav-item">
+        <a class="nav-link" aria-current="page" href="{% url list_page.0 list_page.1 %}">Contract list</a>
+    </li>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    {# General information section #}
-    <h2>General information</h2>
-
-    <div class="card shadow p-3 mb-5 bg-body rounded">
-        <div class="card-body">
-
-
-
-            <div class="table-responsive">
-                <table class="table">
-
-                    {% for key, value in object.get_details.items %}
-                    <thead>
-                        <tr>
-                            <th scope="col">{{key}}</th>
-                            <th scope="col">{{value}}</th>
-                        </tr>
-                    </thead>
-
-                    {% endfor %}
-                </table>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        {% for key, value in object.get_details.items %}
-        <div class="col-md-6 col-xl-3 mb-4">
-
-            <div class="card shadow border-left-primary py-2">
-                <div class="card-body">
-                    <div class="row align-items-center no-gutters">
-                        <div class="col mr-2">
-                            <div class="text-uppercase text-primary font-weight-bold text-xs mb-1"><span>{{key}}</span>
-                            </div>
-                            <div class="text-dark font-weight-bold h5 mb-0"><span>{{value}}</span></div>
+    <div class="container">
+        {# General information section #}
+        <h2>General information</h2>
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <td>Tenancy</td>
+                                        <td>{{object.tenancy}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Contract Type</td>
+                                        <td>{{object.contract_type}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Invoicing Period</td>
+                                        <td>{{object.invoicing_period}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Invoicing Amount of Days</td>
+                                        <td>{{object.invoicing_amount_of_days}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>External Customer ID</td>
+                                        <td>{{object.external_customer_id}}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <td>Start Date</td>
+                                        <td>{{object.start_date}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>End Date</td>
+                                        <td>{{object.end_date}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Previous Invoicing Date</td>
+                                        <td>{{object.date_prev_prolongation}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Next Invoicing Date</td>
+                                        <td>{{object.date_next_prolongation}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>GL Dimension 1</td>
+                                        <td>{{object.gl_dimension_1}}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <td>GL Dimension 2</td>
+                                        <td>{{object.gl_dimension_2}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Balance</td>
+                                        <td>€{{object.balance}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Base Amount</td>
+                                        <td>€{{object.base_amount}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>VAT Amount</td>
+                                        <td>€{{object.vat_amount}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Amount</td>
+                                        <td>€{{object.total_amount}}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
+
+                <div class="row">
+                    <ul class="nav">
+                        {% if object.can_update_or_delete %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'contract_update' company_id object.contract_id %}">Update</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'contract_delete' company_id object.contract_id %}">Delete</a>
+                            </li>
+                            {% if not object.start_date and object.can_activate %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'contract_activate' company_id object.contract_id %}">Activate</a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                        {% if not object.end_date and object.start_date %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'contract_deactivate' company_id object.contract_id %}">Deactivate</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
             </div>
-
         </div>
-        {% endfor %}
-    </div>
-
 
         {# Components list section #}
         <h2>Components</h2>
         {# Table header #}
-        <div class="row">
-            <div class="col-lg-4">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Base component - description</h5>
+        {% if object.has_components %}
+            <div class="row">
+                <div class="col-lg-4">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Base component - description</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT rate</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Invoiced until</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit id</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Number of units</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit price</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Base price</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total</h5>
+                </div>
+                {# Empty column header for update & delete links #}
+                <div class="col"></div>
             </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT rate</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Invoiced until</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit id</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Number of units</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit price</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Base price</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total</h5>
-            </div>
-            {# Empty column header for update & delete links #}
-            <div class="col"></div>
-        </div>
+        {% endif %}
 
         {# Table contents #}
         {% for component in object.get_components %}
@@ -139,62 +217,70 @@
                         {# Update and delete links #}
                         <div class="col">
                             <ul class="nav">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'component_update' company_id object.contract_id component.component_id %}">Update</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'component_delete' company_id object.contract_id component.component_id %}">Delete</a>
-                                </li>
+                                {% if component.can_update_or_delete %}
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'component_update' company_id object.contract_id component.component_id %}">Update</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'component_delete' company_id object.contract_id component.component_id %}">Delete</a>
+                                    </li>
+                                {% endif %}
+                                {% if not component.end_date %}
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'component_deactivate' company_id object.contract_id component.component_id %}">Deactivate</a>
+                                    </li>
+                                {% endif %}
                             </ul>
                         </div>
                     </div>
                 </div>
             </div>
-
         {% empty %}
-            <p>No objects yet</p>
+            <p>No components yet</p>
         {% endfor %}
 
         {# Contract persons list section #}
         <h2>Persons</h2>
         {# Table header #}
-        <div class="row">
-            <div class="col-lg-2">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Name</h5>
+        {% if object.has_contract_persons %}
+            <div class="row">
+                <div class="col-lg-2">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Name</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Address - city</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment method</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">IBAN</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Mandate</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Email</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Percentage</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment day</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Type</h5>
+                </div>
+                {# Empty column header for update & delete links #}
+                <div class="col"></div>
             </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Address - city</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment method</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">IBAN</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Mandate</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Email</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Percentage</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment day</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Type</h5>
-            </div>
-            {# Empty column header for update & delete links #}
-            <div class="col"></div>
-        </div>
+        {% endif %}
 
         {# Table contents #}
         {% for person in object.get_contract_persons %}
@@ -236,56 +322,60 @@
                         </div>
                         {# Update and delete links #}
                         <div class="col">
-                            <ul class="nav">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'contract_person_update' company_id object.contract_id person.contract_person_id %}">Update</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'contract_person_delete' company_id object.contract_id person.contract_person_id %}">Delete</a>
-                                </li>
-                            </ul>
+                            {% if person.can_update_or_delete %}
+                                <ul class="nav">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'contract_person_update' company_id object.contract_id person.contract_person_id %}">Update</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'contract_person_delete' company_id object.contract_id person.contract_person_id %}">Delete</a>
+                                    </li>
+                                </ul>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
-
         {% empty %}
-            <p>No objects yet</p>
+            <p>No persons yet</p>
         {% endfor %}
 
         {# Invoices section (paginated) #}
+        <h2>Invoices</h2>
         {# Table header #}
-        <div class="row">
-            <div class="col-lg-4">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Invoice number</h5>
+        {% if object.date_prev_prolongation %}
+            <div class="row">
+                <div class="col-lg-4">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Invoice number</h5>
+                </div>
+                <div class="col-sm-1 text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Description</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Date</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Expiration date</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Base amount</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total amount</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Balance</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment received</h5>
+                </div>
+                {# Empty column header for details link #}
+                <div class="col"></div>
             </div>
-            <div class="col-sm-1 text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Description</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Date</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Expiration date</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Base amount</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total amount</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Balance</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment received</h5>
-            </div>
-            {# Empty column header for update & delete links #}
-            <div class="col"></div>
-        </div>
+        {% endif %}
 
         {# Table contents #}
         {% for invoice in page_obj %}
@@ -335,31 +425,26 @@
             <p>No invoices yet</p>
         {% endfor %}
     </div>
-<!-- Create the pagination back and next links  -->
-<div class="col">
-    <div class="pagination">
-        <span class="step-links">
-            {% if page_obj.has_previous %}
-            <a href="?page=1">&laquo; first</a>
-            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
-            {% endif %}
 
-            <span class="current">
-                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+    <!-- Create the pagination back and next links  -->
+    <div class="col">
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                {% endif %}
             </span>
-
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-            {% endif %}
-        </span>
+        </div>
     </div>
-</div>
-
-</div>
-
-
-
-
 
 {% endblock %}

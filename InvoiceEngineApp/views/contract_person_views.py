@@ -1,5 +1,6 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 
 from InvoiceEngineApp.forms import ContractPersonForm
 from InvoiceEngineApp.models import ContractPerson
@@ -17,7 +18,7 @@ class ContractPersonCreateView(ParentCreateView):
     def __init__(self):
         super().__init__()
         self.object_type = "contract person"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def post(self, request, *args, **kwargs):
         """
@@ -39,6 +40,15 @@ class ContractPersonCreateView(ParentCreateView):
         self.object.create(self.tenancy, self.kwargs.get('contract_id'))
         return super().form_valid(form)
 
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
+
 
 class ContractPersonUpdateView(ParentUpdateView):
     template_name = 'InvoiceEngineApp/update.html'
@@ -47,7 +57,7 @@ class ContractPersonUpdateView(ParentUpdateView):
     def __init__(self):
         super().__init__()
         self.object_type = "contract person"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def get_object(self, queryset=ContractPerson.objects.all()):
         contract_person_id = self.kwargs.get('contract_person_id')
@@ -59,6 +69,15 @@ class ContractPersonUpdateView(ParentUpdateView):
             raise Http404('No Contract person matches the given query.')
 
         return contract_person
+
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
 
 
 class ContractPersonDeleteView(ParentDeleteView):
@@ -67,7 +86,7 @@ class ContractPersonDeleteView(ParentDeleteView):
     def __init__(self):
         super().__init__()
         self.object_type = "contract person"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def get_object(self, queryset=ContractPerson.objects.all()):
         contract_person_id = self.kwargs.get('contract_person_id')
@@ -79,3 +98,12 @@ class ContractPersonDeleteView(ParentDeleteView):
             raise Http404('No Contract person matches the given query.')
 
         return contract_person
+
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )

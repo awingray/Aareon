@@ -6,35 +6,37 @@
     </li>
 
     <li class="nav-item">
-        <a class="nav-link" href="{% url 'tenancy_list'%}">Return to company list</a>
+        <a class="nav-link" href="{% url 'tenancy_list'%}">Company list</a>
     </li>
 {% endblock %}
 
 {% block content %}
     <div class="container">
         {# Table header #}
-        <div class="row">
-            <div class="col-lg-4">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Description</h5>
+        {% if page_obj %}
+            <div class="row">
+                <div class="col-lg-4">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Description</h5>
+                </div>
+                <div class="col-sm-1 text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Code</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger debit</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger credit</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger dimension</h5>
+                </div>
+                <div class="col text-left">
+                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit id</h5>
+                </div>
+                {# Empty column header for update & delete links #}
+                <div class="col"></div>
             </div>
-            <div class="col-sm-1 text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Code</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger debit</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger credit</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">General ledger dimension</h5>
-            </div>
-            <div class="col text-left">
-                <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit id</h5>
-            </div>
-            {# Empty column header for update & delete links #}
-            <div class="col"></div>
-        </div>
+        {% endif %}
 
         {# Table contents #}
         {% for object in page_obj %}
@@ -77,7 +79,7 @@
             </div>
 
         {% empty %}
-            <p>No objects yet</p>
+            <p>No base components yet</p>
         {% endfor %}
     </div>
 

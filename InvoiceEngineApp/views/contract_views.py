@@ -1,5 +1,8 @@
+import csv
+
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 
 from InvoiceEngineApp.forms import (
     ContractForm,
@@ -14,7 +17,6 @@ from InvoiceEngineApp.views.parent_views import (
     ParentUpdateView,
     ParentDeleteView,
 )
-
 
 class ContractListView(ParentListView):
     template_name = 'InvoiceEngineApp/contract_list.html'
@@ -101,7 +103,7 @@ class ContractUpdateView(ParentUpdateView):
     def __init__(self):
         super().__init__()
         self.object_type = "contract"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
@@ -109,7 +111,7 @@ class ContractUpdateView(ParentUpdateView):
         qs = super().filter_by_tenancy(qs)
         contract = get_object_or_404(qs)
 
-        if contract.can_update_or_delete():
+        if not contract.can_update_or_delete():
             raise Http404('No Contract matches the given query.')
 
         return contract
@@ -121,6 +123,15 @@ class ContractUpdateView(ParentUpdateView):
         form = super().get_form()
         form.filter_selectors(self.object.tenancy)
         return form
+
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
 
 
 class ContractDeleteView(ParentDeleteView):
@@ -137,7 +148,7 @@ class ContractDeleteView(ParentDeleteView):
         qs = super().filter_by_tenancy(qs)
         contract = get_object_or_404(qs)
 
-        if contract.can_update_or_delete():
+        if not contract.can_update_or_delete():
             raise Http404('No Contract matches the given query.')
 
         return contract
@@ -150,7 +161,7 @@ class ContractActivationView(ParentUpdateView):
     def __init__(self):
         super().__init__()
         self.object_type = "contract"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def get_object(self, queryset=Contract.objects.all()):
         contract_id = self.kwargs.get('contract_id')
@@ -158,10 +169,24 @@ class ContractActivationView(ParentUpdateView):
         qs = super().filter_by_tenancy(qs)
         contract = get_object_or_404(qs)
 
-        if contract.validate() != 100:
+        if not contract.can_activate():
             raise Http404('No Contract matches the given query.')
 
         return contract
+
+    def form_valid(self, form):
+        self.object = form.instance
+        self.object.activate()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
 
 
 class ContractDeactivationView(ParentUpdateView):

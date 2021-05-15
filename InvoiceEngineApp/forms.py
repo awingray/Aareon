@@ -326,8 +326,19 @@ class DeactivationForm(forms.ModelForm):
                 + self.instance.start_date.__str__()
             )
 
+        return cleaned_data
+
 
 class ComponentDeactivationForm(DeactivationForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        contract_end = self.instance.contract.end_date
+        if contract_end and cleaned_data.get('end_data') > contract_end:
+            raise forms.ValidationError(
+                "End date cannot be past contract end date: "
+                + self.instance.contract.end_date.__str__()
+            )
+
     class Meta:
         model = models.Component
         fields = ['end_date']

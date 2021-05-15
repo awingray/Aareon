@@ -16,6 +16,17 @@ urlpatterns = [
     path('', HomePage.as_view()),
     path('profile/', UserProfilePage.as_view(), name='profile'),
 
+    # Exporting urls.
+    path('profile/tenancies/<int:company_id>/invoices/export',
+         export_invoices,
+         name='export_invoices'),
+    path('profile/tenancies/<int:company_id>/glposts/export',
+         export_glposts,
+         name='export_glposts'),
+    path('profile/tenancies/<int:company_id>/collections/export',
+         export_collections,
+         name='export_collections'),
+
     # Tenancy pages.
     path('profile/tenancies/',
          TenancyListView.as_view(),
@@ -170,7 +181,7 @@ urlpatterns = [
          GLPostListView.as_view(),
          name='glpost_list'
          ),
-    path('profile/tenancies/<int:company_id>/glposts/<int:general_ledger_post_id>/',
+    path('profile/tenancies/<int:company_id>/glposts/<int:id>/',
          GLPostDetailView.as_view(),
          name='glpost_details'
          ),

@@ -1,9 +1,5 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
-{% block navbar %}
-
-{% endblock %}
-
 {% block content %}
     <div class="col">
         <div class="card shadow p-3 mb-5 bg-body rounded">
@@ -18,7 +14,6 @@
 
                         <!-- Using the formset -->
                         {{ form.as_p }}
-
                         <input type="submit" value="Save">
                     </form>
                 </ul>

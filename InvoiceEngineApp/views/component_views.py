@@ -1,8 +1,9 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 
 from InvoiceEngineApp.forms import ComponentForm, ComponentDeactivationForm
-from InvoiceEngineApp.models import Component
+from InvoiceEngineApp.models import Component, Contract
 from InvoiceEngineApp.views.parent_views import (
     ParentCreateView,
     ParentUpdateView,
@@ -17,7 +18,8 @@ class ComponentCreateView(ParentCreateView):
     def __init__(self):
         super().__init__()
         self.object_type = "component"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
+        self.contract = None
 
     def get_form(self, form_class=None):
         """Overloaded to filter the selection of base components & VAT rates
@@ -37,11 +39,8 @@ class ComponentCreateView(ParentCreateView):
 
         form = self.get_form()
         form.instance.set_tenancy_and_contract(
-            self.tenancy, self.kwargs.get('contract_id')
+            self.tenancy, self.contract
         )
-        # Can only add a component to a contract if the contract is active
-        if not form.instance.contract.start_date:
-            raise Http404("No Component matches the given query.")
 
         if form.is_valid():
             return self.form_valid(form)
@@ -54,6 +53,24 @@ class ComponentCreateView(ParentCreateView):
         self.object.create()
         return super().form_valid(form)
 
+    def dispatch(self, request, *args, **kwargs):
+        self.contract = get_object_or_404(
+            Contract.objects.select_related('contract_type'),
+            contract_id=self.kwargs.get('contract_id')
+        )
+        if not self.contract.start_date:
+            raise Http404("No Component matches the given query")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
+
 
 class ComponentUpdateView(ParentUpdateView):
     """A component can only be updated when it has not been invoiced yet."""
@@ -63,7 +80,7 @@ class ComponentUpdateView(ParentUpdateView):
     def __init__(self):
         super().__init__()
         self.object_type = "component"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
@@ -97,6 +114,15 @@ class ComponentUpdateView(ParentUpdateView):
         self.object.update()
         return super().form_valid(form)
 
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
+
 
 class ComponentDeactivationView(ParentUpdateView):
     """A component can only be updated when it has not been invoiced yet."""
@@ -106,7 +132,7 @@ class ComponentDeactivationView(ParentUpdateView):
     def __init__(self):
         super().__init__()
         self.object_type = "component"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
@@ -124,6 +150,15 @@ class ComponentDeactivationView(ParentUpdateView):
         self.object.deactivate()
         return super().form_valid(form)
 
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
+
 
 class ComponentDeleteView(ParentDeleteView):
     """A component can only be deleted when it has not been invoiced yet."""
@@ -132,7 +167,7 @@ class ComponentDeleteView(ParentDeleteView):
     def __init__(self):
         super().__init__()
         self.object_type = "component"
-        self.list_page = "contract_list"
+        self.list_page = "contract_details"
 
     def get_object(self, queryset=Component.objects.all()):
         component_id = self.kwargs.get('component_id')
@@ -145,3 +180,12 @@ class ComponentDeleteView(ParentDeleteView):
             raise Http404("No Component matches the given query.")
 
         return component
+
+    def get_success_url(self):
+        return reverse(
+            self.list_page,
+            args=[
+                self.kwargs.get('company_id'),
+                self.kwargs.get('contract_id')
+            ]
+        )
