@@ -146,11 +146,6 @@ urlpatterns = [
         ContractDeleteView.as_view(),
         name="contract_delete",
     ),
-    path(
-        "profile/tenancies/<int:company_id>/contracts/<int:contract_id>/export/",
-        export,
-        name="export",
-    ),
     # Component pages.
     path(
         "profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/create/",
@@ -194,6 +189,11 @@ urlpatterns = [
         InvoiceDetailView.as_view(),
         name="invoice_details",
     ),
+    path(
+        "profile/tenancies/<int:company_id>/invoices/export/",
+        invoice_export,
+        name="invoice_export",
+    ),
     # General ledger post pages.
     path(
         "profile/tenancies/<int:company_id>/glposts/",
@@ -204,5 +204,10 @@ urlpatterns = [
         "profile/tenancies/<int:company_id>/glposts/<int:id>/",
         GLPostDetailView.as_view(),
         name="glpost_details",
+    ),
+    path(
+        "profile/tenancies/<int:company_id>/glposts/export/",
+        glpost_export,
+        name="glpost_export",
     ),
 ]
