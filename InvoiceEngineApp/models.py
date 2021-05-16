@@ -305,7 +305,9 @@ class VATRate(TenancyDependentModel):
                + "%"
 
     def can_update_or_delete(self):
-        return not self.component_set.exists()
+        return not self.component_set.filter(
+            date_prev_prolongation__isnull=False
+        ).exists()
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

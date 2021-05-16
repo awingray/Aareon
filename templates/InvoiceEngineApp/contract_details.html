@@ -40,6 +40,10 @@
                                         <td>External Customer ID</td>
                                         <td>{{object.external_customer_id}}</td>
                                     </tr>
+                                    <tr>
+                                        <td>Status</td>
+                                        <td>{{object.status}}</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -68,6 +72,10 @@
                                         <td>GL Dimension 1</td>
                                         <td>{{object.gl_dimension_1}}</td>
                                     </tr>
+                                    <tr>
+                                        <td>GL Dimension 2</td>
+                                        <td>{{object.gl_dimension_2}}</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -77,24 +85,20 @@
                             <table class="table">
                                 <tbody>
                                     <tr>
-                                        <td>GL Dimension 2</td>
-                                        <td>{{object.gl_dimension_2}}</td>
-                                    </tr>
-                                    <tr>
                                         <td>Balance</td>
-                                        <td>€{{object.balance}}</td>
+                                        <td style="text-align: right">€{{object.balance|floatformat:2}}</td>
                                     </tr>
                                     <tr>
                                         <td>Base Amount</td>
-                                        <td>€{{object.base_amount}}</td>
+                                        <td style="text-align: right">€{{object.base_amount|floatformat:2}}</td>
                                     </tr>
                                     <tr>
                                         <td>VAT Amount</td>
-                                        <td>€{{object.vat_amount}}</td>
+                                        <td style="text-align: right">€{{object.vat_amount|floatformat:2}}</td>
                                     </tr>
                                     <tr>
                                         <td>Total Amount</td>
-                                        <td>€{{object.total_amount}}</td>
+                                        <td style="text-align: right">€{{object.total_amount|floatformat:2}}</td>
                                     </tr>
                                 </tbody>
                             </table>

@@ -1,6 +1,7 @@
 import datetime
 
 from django import forms
+from django.db.models import Func
 
 from InvoiceEngineApp import models
 
@@ -109,35 +110,68 @@ class ContractSearchForm(forms.Form):
     list page.
     Takes one or more inputs, and filters the queryset based on this.
     """
-    name = forms.CharField(max_length=50, required=False)
-    address = forms.CharField(max_length=50, required=False)
+    name = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'John Doe'})
+    )
+    address = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Groningen'})
+    )
     contract_type = forms.CharField(
         max_length=50,
-        required=False, widget=forms.TextInput(attrs={'size': 10})
+        required=False,
+        widget=forms.TextInput(attrs={'size': 10, 'placeholder': 'rent'})
     )
     period = forms.CharField(
         max_length=15,
-        required=False, widget=forms.TextInput(attrs={'size': 8})
+        required=False,
+        widget=forms.TextInput(attrs={'size': 8, 'placeholder': 'month'})
     )
     start_date = forms.DateField(
-        required=False, widget=forms.DateInput(attrs={'size': 8})
+        required=False,
+        widget=forms.DateInput(attrs={'size': 8, 'placeholder': '2021-01-01'})
     )
     end_date = forms.DateField(
-        required=False, widget=forms.DateInput(attrs={'size': 8})
+        required=False,
+        widget=forms.DateInput(attrs={'size': 8, 'placeholder': '2021-01-01'})
     )
     next_invoice_date = forms.DateField(
-        required=False, widget=forms.DateInput(attrs={'size': 8})
+        required=False,
+        widget=forms.DateInput(attrs={'size': 8, 'placeholder': '2021-01-01'})
     )
     total_amount = forms.FloatField(
         required=False,
-        widget=forms.TextInput(attrs={'size': 8, 'style': 'text-align: right'})
+        widget=forms.TextInput(
+            attrs={'size': 8,
+                   'style': 'text-align: right',
+                   'placeholder': '1000.00'
+                   }
+        )
     )
     balance = forms.FloatField(
         required=False,
-        widget=forms.TextInput(attrs={'size': 8, 'style': 'text-align: right'})
+        widget=forms.TextInput(
+            attrs={'size': 8,
+                   'style': 'text-align: right',
+                   'placeholder': '1000.00'
+                   }
+        )
     )
 
     def filter_queryset(self, qs):
+        class Round2(Func):
+            function = "ROUND"
+            template = "%(function)s(%(expressions)s::numeric, 2)"
+
+            def __rand__(self, other):
+                pass
+
+            def __ror__(self, other):
+                pass
+
         if self.cleaned_data.get('contract_type'):
             qs = qs.filter(
                 contract_type__description__icontains=self.cleaned_data.get(
@@ -170,14 +204,14 @@ class ContractSearchForm(forms.Form):
                 )
             )
         if self.cleaned_data.get('total_amount'):
-            qs = qs.filter(
-                total_amount=self.cleaned_data.get(
+            qs = qs.annotate(rounded_total=Round2('total_amount')).filter(
+                rounded_total=self.cleaned_data.get(
                     'total_amount'
                 )
             )
         if self.cleaned_data.get('balance'):
-            qs = qs.filter(
-                balance=self.cleaned_data.get(
+            qs = qs.annotate(rounded_balance=Round2('balance')).filter(
+                rounded_balance=self.cleaned_data.get(
                     'balance'
                 )
             )
