@@ -104,12 +104,6 @@ class ContractForm(forms.ModelForm):
         ]
 
 
-class ContractActivationForm(forms.ModelForm):
-    class Meta:
-        model = models.Contract
-        fields = ['start_date']
-
-
 class ContractSearchForm(forms.Form):
     """The form the user can use to search contracts in the contracts
     list page.
@@ -135,10 +129,12 @@ class ContractSearchForm(forms.Form):
         required=False, widget=forms.DateInput(attrs={'size': 8})
     )
     total_amount = forms.FloatField(
-        required=False, widget=forms.NumberInput(attrs={'size': 8})
+        required=False,
+        widget=forms.TextInput(attrs={'size': 8, 'style': 'text-align: right'})
     )
     balance = forms.FloatField(
-        required=False, widget=forms.NumberInput(attrs={'size': 8})
+        required=False,
+        widget=forms.TextInput(attrs={'size': 8, 'style': 'text-align: right'})
     )
 
     def filter_queryset(self, qs):
@@ -255,11 +251,10 @@ class ComponentForm(forms.ModelForm):
 
         # Check that end date is after start date
         start_date = cleaned_data.get("start_date")
-
-        if start_date < self.instance.contract.start_date:
+        end_date = cleaned_data.get("end_date")
+        if start_date and end_date and start_date > end_date:
             raise forms.ValidationError(
-                "Start date cannot be before the contract's start date: "
-                + self.instance.contract.start_date.__str__()
+                "Start date cannot be after end date."
             )
 
     class Meta:
@@ -271,41 +266,49 @@ class ComponentForm(forms.ModelForm):
         ]
 
 
-class ContractPersonForm(forms.ModelForm):
+class ContractPersonFormSet(forms.BaseModelFormSet):
     """A form for the user to set the fields of a contract person."""
     def clean(self):
-        cleaned_data = super().clean()
-        payment_method = cleaned_data.get("payment_method")
-        iban = cleaned_data.get("iban")
-        mandate = cleaned_data.get("mandate")
+        super().clean()
+        total_percentage = 0
+        for form in self.forms:
+            if self._should_delete_form(form):
+                continue
 
-        if payment_method == self.instance.DIRECT_DEBIT:
-            if not iban or not mandate:
+            cleaned_data = form.clean()
+            payment_method = cleaned_data.get("payment_method")
+            iban = cleaned_data.get("iban")
+            mandate = cleaned_data.get("mandate")
+
+            if payment_method == models.ContractPerson.DIRECT_DEBIT:
+                if not iban or not mandate:
+                    raise forms.ValidationError(
+                        "Please provide an iban and a mandate."
+                    )
+
+            start_date = cleaned_data.get("start_date")
+            end_date = cleaned_data.get("end_date")
+            if end_date and start_date and end_date < start_date:
                 raise forms.ValidationError(
-                    "Please provide an iban and a mandate."
+                    "End date should be after start date."
                 )
 
-        start_date = cleaned_data.get("start_date")
-        end_date = cleaned_data.get("end_date")
-        if end_date and end_date < start_date:
-            raise forms.ValidationError("End date should be after start date.")
+            percentage = cleaned_data.get('percentage_of_total')
+            if percentage:
+                total_percentage += percentage
 
-        percentage = cleaned_data.get("percentage_of_total")
-        db_sum_percentage = self.instance.contract.validate()
-        if self.instance.percentage_of_total:
-            db_sum_percentage -= self.instance.percentage_of_total
-
-        total_percentage = db_sum_percentage + percentage
         if total_percentage > 100:
             raise forms.ValidationError(
                 'Total of all persons exceeding 100% by '
                 + (total_percentage - 100).__str__()
                 + '%'
             )
-
-    class Meta:
-        model = models.ContractPerson
-        exclude = ['contract', 'tenancy', 'start_date', 'end_date']
+        if total_percentage < 100:
+            raise forms.ValidationError(
+                'Total of all persons smaller than 100% by '
+                + (100 - total_percentage).__str__()
+                + '%'
+            )
 
 
 class DeactivationForm(forms.ModelForm):

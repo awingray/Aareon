@@ -11,6 +11,10 @@ class InvoiceListView(ParentListView):
     template_name = 'InvoiceEngineApp/invoice_list.html'
     model = Invoice
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.order_by('invoice_number')
+
 
 class InvoiceDetailView(ParentDetailView):
     template_name = 'InvoiceEngineApp/details.html'

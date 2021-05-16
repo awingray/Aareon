@@ -72,7 +72,8 @@ class Tenancy(models.Model):
             self.component_set.filter(
                 date_next_prolongation__isnull=False,
                 contract__date_next_prolongation__isnull=False,
-                contract__date_next_prolongation__lte=date_today
+                contract__date_next_prolongation__lte=date_today,
+                contract__status=Contract.ACTIVE
             ).order_by(
                 'contract_id'
             ).select_related(
@@ -357,9 +358,27 @@ class Contract(TenancyDependentModel):
         (CUSTOM, 'Custom')
     ]
 
+    DRAFT = 'F'
+    ACTIVE = 'A'
+    TERMINATED = 'T'
+    ENDED = 'E'
+    HISTORIC = 'H'
+    STATUS_CHOICES = [
+        (DRAFT, 'Draft'),
+        (ACTIVE, 'Active'),
+        (TERMINATED, 'Terminated'),
+        (ENDED, 'Ended'),
+        (HISTORIC, 'Historic')
+    ]
+
     # Model fields
     contract_id = models.AutoField(primary_key=True)
     external_customer_id = models.PositiveIntegerField()
+    status = models.CharField(
+        max_length=1,
+        choices=STATUS_CHOICES,
+        default=DRAFT
+    )
 
     contract_type = models.ForeignKey(ContractType, on_delete=models.CASCADE)
     invoicing_period = models.CharField(
@@ -422,12 +441,11 @@ class Contract(TenancyDependentModel):
     def can_update_or_delete(self):
         return self.date_prev_prolongation is None
 
-    def activate(self):
-        self.date_next_prolongation = self.start_date
-
     def deactivate(self):
-        # Deactivation is only possible when the contract has no end date
-        # and it has been invoiced at least once (if date_prev_prolongation)
+        if not self.invoice_set.exists():
+            self.status = self.DRAFT
+            return
+
         components = self.component_set.filter(
             Q(end_date__isnull=True) | Q(end_date__gt=self.end_date)
         )
@@ -535,17 +553,34 @@ class Contract(TenancyDependentModel):
             gl_account=self.contract_type.gl_debit,
         )
 
-    def validate(self):
-        return (
-            self.contractperson_set.aggregate(
-                models.Sum('percentage_of_total')
-            ).get('percentage_of_total__sum')
-            if self.contractperson_set.exists()
-            else 0
-        )
-
     def can_activate(self):
-        return self.validate() == 100
+        """Return whether a contract can be activated for invoicing.
+        This is only possible if it has contract persons, components,
+        and a start date.
+        """
+        return (self.has_contract_persons()
+                and self.start_date
+                and self.has_components())
+
+    def activate(self):
+        """Activate a contract so that it can be invoiced."""
+        self.date_next_prolongation = self.start_date
+        self.status = Contract.ACTIVE
+        with transaction.atomic():
+            self.contractperson_set.filter(
+                start_date__lt=self.start_date
+            ).update(
+                start_date=self.start_date
+            )
+            self.component_set.filter(
+                start_date__lt=self.start_date
+            ).update(
+                start_date=self.start_date
+            )
+
+    def is_active(self):
+        """Returns whether or not this contract is active for invoicing."""
+        return self.status == Contract.ACTIVE
 
 
 class Component(TenancyDependentModel):
@@ -993,28 +1028,28 @@ class ContractPerson(TenancyDependentModel):
 
     contract_person_id = models.AutoField(primary_key=True)
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
-    type = models.CharField(max_length=1)
+    type = models.CharField(max_length=1, null=True, default=None)
     start_date = models.DateField(null=True, default=None)
     end_date = models.DateField(null=True, blank=True, default=None)
-    name = models.CharField(max_length=50)
-    address = models.CharField(max_length=50)
-    city = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, null=True, default=None)
+    address = models.CharField(max_length=50, null=True, default=None)
+    city = models.CharField(max_length=50, null=True, default=None)
     payment_method = models.CharField(
         max_length=1,
         choices=PAYMENT_METHOD_CHOICES,
         default=INVOICE
     )
-    iban = models.CharField(max_length=17, null=True, blank=True)
-    mandate = models.PositiveIntegerField(null=True, blank=True)
-    email = models.EmailField()
-    phone = models.CharField(max_length=15)
-    percentage_of_total = models.PositiveIntegerField()
-    payment_day = models.PositiveIntegerField()
+    iban = models.CharField(max_length=17, null=True, blank=True, default=None)
+    mandate = models.PositiveIntegerField(null=True, blank=True, default=None)
+    email = models.EmailField(null=True, default=None)
+    phone = models.CharField(max_length=15, null=True, default=None)
+    percentage_of_total = models.PositiveIntegerField(default=0.0)
+    payment_day = models.PositiveIntegerField(null=True, default=None)
 
     def __str__(self):
         return "contract person " + self.name
 
-    def can_update_or_delete(self):
+    def can_delete(self):
         return not self.contract.start_date
 
     def create(self, tenancy, contract_id):

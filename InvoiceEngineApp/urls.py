@@ -8,7 +8,6 @@ from InvoiceEngineApp.views.contract_views import *
 from InvoiceEngineApp.views.component_views import *
 from InvoiceEngineApp.views.contract_person_views import *
 from InvoiceEngineApp.views.invoice_views import *
-from InvoiceEngineApp.views.glpost_views import *
 
 
 urlpatterns = [
@@ -126,7 +125,7 @@ urlpatterns = [
          name='contract_delete'
          ),
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/activate/',
-         ContractActivationView.as_view(),
+         contract_activation_view,
          name='contract_activate'
          ),
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/deactivate/',
@@ -153,17 +152,9 @@ urlpatterns = [
          ),
 
     # Contract person pages.
-    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/create/',
-         ContractPersonCreateView.as_view(),
-         name='contract_person_create'
-         ),
-    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/<int:contract_person_id>/update/',
-         ContractPersonUpdateView.as_view(),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/update/',
+         contract_person_update_view,
          name='contract_person_update'
-         ),
-    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/<int:contract_person_id>/delete/',
-         ContractPersonDeleteView.as_view(),
-         name='contract_person_delete'
          ),
 
     # Invoice pages.
@@ -174,15 +165,5 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/invoices/<int:invoice_id>/',
          InvoiceDetailView.as_view(),
          name='invoice_details'
-         ),
-
-    # General ledger post pages.
-    path('profile/tenancies/<int:company_id>/glposts/',
-         GLPostListView.as_view(),
-         name='glpost_list'
-         ),
-    path('profile/tenancies/<int:company_id>/glposts/<int:id>/',
-         GLPostDetailView.as_view(),
-         name='glpost_details'
          ),
 ]

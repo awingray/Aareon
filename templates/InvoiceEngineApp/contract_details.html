@@ -1,15 +1,9 @@
 {% extends 'InvoiceEngineApp/base.html' %}
 
 {% block navbar %}
-    {% if object.start_date %}
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'component_create' company_id object.contract_id %}">Create new component</a>
-        </li>
-    {% else %}
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'contract_person_create' company_id object.contract_id %}">Create new person</a>
-        </li>
-    {% endif %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'component_create' company_id object.contract_id %}">Create new component</a>
+    </li>
     <li class="nav-item">
         <a class="nav-link" aria-current="page" href="{% url list_page.0 list_page.1 %}">Contract list</a>
     </li>
@@ -18,7 +12,7 @@
 {% block content %}
     <div class="container">
         {# General information section #}
-        <h2>General information</h2>
+        <h2 style="padding: 15px">General information</h2>
         <div class="card shadow p-3 mb-5 bg-body rounded">
             <div class="card-body">
                 <div class="row">
@@ -36,7 +30,7 @@
                                     </tr>
                                     <tr>
                                         <td>Invoicing Period</td>
-                                        <td>{{object.invoicing_period}}</td>
+                                        <td>{{object.get_period}}</td>
                                     </tr>
                                     <tr>
                                         <td>Invoicing Amount of Days</td>
@@ -134,305 +128,183 @@
         </div>
 
         {# Components list section #}
-        <h2>Components</h2>
-        {# Table header #}
-        {% if object.has_components %}
-            <div class="row">
-                <div class="col-lg-4">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Base component - description</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT rate</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Invoiced until</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit id</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Number of units</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Unit price</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Base price</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total</h5>
-                </div>
-                {# Empty column header for update & delete links #}
-                <div class="col"></div>
-            </div>
-        {% endif %}
-
-        {# Table contents #}
-        {% for component in object.get_components %}
-            <div class="card shadow p-1 mb-2 bg-body rounded">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-4">
-                            <h5 class="card-title"> {{ component.base_component.description }} - {{ component.description }}</h5>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ component.vat_rate }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ component.start_date }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ component.end_date }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ component.date_prolonged_until }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ component.unit_id }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ component.number_of_units }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ component.unit_amount|floatformat:2 }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ component.base_amount|floatformat:2 }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ component.vat_amount|floatformat:2 }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ component.total_amount|floatformat:2 }}</p>
-                        </div>
-                        {# Update and delete links #}
-                        <div class="col">
-                            <ul class="nav">
-                                {% if component.can_update_or_delete %}
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'component_update' company_id object.contract_id component.component_id %}">Update</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'component_delete' company_id object.contract_id component.component_id %}">Delete</a>
-                                    </li>
-                                {% endif %}
-                                {% if not component.end_date %}
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'component_deactivate' company_id object.contract_id component.component_id %}">Deactivate</a>
-                                    </li>
-                                {% endif %}
-                            </ul>
+        <h2 style="padding: 15px">Components</h2>
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="table-responsive">
+                            <table class="table table-borderless">
+                                {% for component in object.get_components %}
+                                    {% if forloop.first %}
+                                        <thead>
+                                            <tr class="border-bottom">
+                                                <td><p style="font-size: 20px">Base component</p></td>
+                                                <td><p style="font-size: 20px">Description</p></td>
+                                                <td><p style="font-size: 20px">VAT rate</p></td>
+                                                <td><p style="font-size: 20px">Start date</p></td>
+                                                <td><p style="font-size: 20px">End date</p></td>
+                                                <td><p style="font-size: 20px">Last invoice</p></td>
+                                                <td><p style="font-size: 20px">Unit ID</p></td>
+                                                <td><p style="font-size: 20px"># Units</p></td>
+                                                <td><p style="font-size: 20px">Unit price</p></td>
+                                                <td><p style="font-size: 20px">Base price</p></td>
+                                                <td><p style="font-size: 20px">VAT</p></td>
+                                                <td><p style="font-size: 20px">Total</p></td>
+                                                <td></td>
+                                            </tr>
+                                        </thead>
+                                    {% endif %}
+                                    <tbody>
+                                        <tr>
+                                            <td>{{ component.base_component.description }}</td>
+                                            <td>{{ component.description }}</td>
+                                            <td>{{ component.vat_rate.description }}</td>
+                                            <td>{{ component.start_date }}</td>
+                                            <td>{{ component.end_date }}</td>
+                                            <td>{{ component.date_prev_prolongation }}</td>
+                                            <td>{{ component.unit_id }}</td>
+                                            <td>{{ component.number_of_units }}</td>
+                                            <td style="text-align: right">{{ component.unit_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">{{ component.base_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">{{ component.vat_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">{{ component.total_amount|floatformat:2 }}</td>
+                                            <td style="text-align: center">
+                                                <a class="link-primary" href="{% url 'component_update' company_id object.contract_id component.component_id %}">Update</a>
+                                                <a class="link-primary" href="{% url 'component_delete' company_id object.contract_id component.component_id %}">Delete</a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                {% empty %}
+                                    <h5>No registered components</h5>
+                                {% endfor %}
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
-        {% empty %}
-            <p>No components yet</p>
-        {% endfor %}
+        </div>
 
         {# Contract persons list section #}
-        <h2>Persons</h2>
-        {# Table header #}
-        {% if object.has_contract_persons %}
-            <div class="row">
-                <div class="col-lg-2">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Name</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Address - city</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment method</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">IBAN</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Mandate</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Email</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Percentage</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Start date</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">End date</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment day</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Type</h5>
-                </div>
-                {# Empty column header for update & delete links #}
-                <div class="col"></div>
-            </div>
-        {% endif %}
-
-        {# Table contents #}
-        {% for person in object.get_contract_persons %}
-            <div class="card shadow p-1 mb-2 bg-body rounded">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-2">
-                            <h5 class="card-title"> {{ person.name }}</h5>
+        <h2 style="padding: 15px">Persons</h2>
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="table-responsive">
+                            <table class="table table-borderless">
+                                {% for person in object.get_contract_persons %}
+                                    {% if forloop.first %}
+                                        <thead>
+                                            <tr class="border-bottom">
+                                                <td><p style="font-size: 20px">Name</p></td>
+                                                <td><p style="font-size: 20px">Address</p></td>
+                                                <td><p style="font-size: 20px">City</p></td>
+                                                <td><p style="font-size: 20px">%</p></td>
+                                                <td><p style="font-size: 20px">Method</p></td>
+                                                <td><p style="font-size: 20px">IBAN</p></td>
+                                                <td><p style="font-size: 20px">Mandate</p></td>
+                                                <td><p style="font-size: 20px">Email</p></td>
+                                                <td><p style="font-size: 20px">Phone</p></td>
+                                                <td><p style="font-size: 20px">Start</p></td>
+                                                <td><p style="font-size: 20px">End</p></td>
+                                                <td><p style="font-size: 20px">Day</p></td>
+                                                <td><p style="font-size: 20px">Type</p></td>
+                                            </tr>
+                                        </thead>
+                                    {% endif %}
+                                    <tbody>
+                                        <tr>
+                                            <td>{{ person.name }}</td>
+                                            <td>{{ person.address }}</td>
+                                            <td>{{ person.city }}</td>
+                                            <td>{{ person.percentage_of_total }}%</td>
+                                            <td>{{ person.payment_method }}</td>
+                                            <td>{{ person.iban }}</td>
+                                            <td>{{ person.mandate }}</td>
+                                            <td>{{ person.email }}</td>
+                                            <td>{{ person.phone }}</td>
+                                            <td>{{ person.start_date }}</td>
+                                            <td>{{ person.end_date }}</td>
+                                            <td>{{ person.payment_day }}</td>
+                                            <td>{{ person.type }}</td>
+                                        </tr>
+                                    </tbody>
+                                {% empty %}
+                                    <h5>No registered persons</h5>
+                                {% endfor %}
+                            </table>
                         </div>
-                        <div class="col text-left">
-                            <p>{{ person.address }} - {{ person.city }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.payment_method }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.iban }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.mandate }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.email }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.percentage_of_total }}%</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.start_date }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.end_date }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.payment_day }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ person.type }}</p>
-                        </div>
-                        {# Update and delete links #}
-                        <div class="col">
-                            {% if person.can_update_or_delete %}
-                                <ul class="nav">
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'contract_person_update' company_id object.contract_id person.contract_person_id %}">Update</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'contract_person_delete' company_id object.contract_id person.contract_person_id %}">Delete</a>
-                                    </li>
-                                </ul>
-                            {% endif %}
-                        </div>
+                        <a class="link-primary" href="{% url 'contract_person_update' company_id object.contract_id %}">Manage</a>
                     </div>
                 </div>
             </div>
-        {% empty %}
-            <p>No persons yet</p>
-        {% endfor %}
+        </div>
 
         {# Invoices section (paginated) #}
-        <h2>Invoices</h2>
-        {# Table header #}
-        {% if object.date_prev_prolongation %}
-            <div class="row">
-                <div class="col-lg-4">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px; padding-left: 20px">Invoice number</h5>
-                </div>
-                <div class="col-sm-1 text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Description</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Date</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Expiration date</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Base amount</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">VAT</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Total amount</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Balance</h5>
-                </div>
-                <div class="col text-left">
-                    <h5 class="header" style="padding-top: 15px; padding-bottom: 10px">Payment received</h5>
-                </div>
-                {# Empty column header for details link #}
-                <div class="col"></div>
-            </div>
-        {% endif %}
-
-        {# Table contents #}
-        {% for invoice in page_obj %}
-            <div class="card shadow p-1 mb-2 bg-body rounded">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-4">
-                            <h5 class="card-title"> {{ invoice.invoice_number }}</h5>
-                        </div>
-                        <div class="col-sm-1 text-left">
-                            <p>{{ invoice.description }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ invoice.date }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>{{ invoice.expiration_date }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ invoice.base_amount|floatformat:2 }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ invoice.vat_amount|floatformat:2 }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ invoice.total_amount|floatformat:2 }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>€{{ invoice.balance|floatformat:2 }}</p>
-                        </div>
-                        <div class="col text-left">
-                            <p>Payment received?</p>
-                        </div>
-                        {# Details link #}
-                        <div class="col">
-                            <ul class="nav">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'invoice_details' company_id invoice.invoice_id %}">Details</a>
-                                </li>
-                            </ul>
+        <h2 style="padding: 15px">Invoices</h2>
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="table-responsive">
+                            <table class="table table-borderless">
+                                {% for invoice in object.get_invoices %}
+                                    {% if forloop.first %}
+                                        <thead>
+                                            <tr class="border-bottom">
+                                                <td><p style="font-size: 20px">Number</p></td>
+                                                <td><p style="font-size: 20px">Description</p></td>
+                                                <td><p style="font-size: 20px">Date</p></td>
+                                                <td><p style="font-size: 20px">Expiration date</p></td>
+                                                <td><p style="font-size: 20px">Customer ID</p></td>
+                                                <td><p style="font-size: 20px">General ledger account</p></td>
+                                                <td><p style="font-size: 20px">Base amount</p></td>
+                                                <td><p style="font-size: 20px">VAT</p></td>
+                                                <td><p style="font-size: 20px">Total</p></td>
+                                                <td><p style="font-size: 20px">Balance</p></td>
+                                                <td><p style="font-size: 20px">Paid</p></td>
+                                                <td></td>
+                                            </tr>
+                                        </thead>
+                                    {% endif %}
+                                    <tbody>
+                                        <tr>
+                                            <td>{{ invoice.invoice_number }}</td>
+                                            <td>{{ invoice.description }}</td>
+                                            <td>{{ invoice.date }}</td>
+                                            <td>{{ invoice.expiration_date }}</td>
+                                            <td>{{ invoice.external_customer_id }}</td>
+                                            <td>{{ invoice.gl_account }}</td>
+                                            <td style="text-align: right">{{ invoice.base_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">{{ invoice.vat_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">{{ invoice.total_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">{{ invoice.balance|floatformat:2 }}</td>
+                                            <td>Unimplemented</td>
+                                            <td style="text-align: center">
+                                                <a class="link-primary" href="{% url 'component_update' company_id object.contract_id component.component_id %}">Update</a>
+                                                <a class="link-primary" href="{% url 'component_delete' company_id object.contract_id component.component_id %}">Delete</a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                {% empty %}
+                                    <h5>No registered invoices</h5>
+                                {% endfor %}
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
-
-        {% empty %}
-            <p>No invoices yet</p>
-        {% endfor %}
+        </div>
     </div>
 
     <!-- Create the pagination back and next links  -->
     <div class="col">
-        <div class="pagination">
+        <div class="pagination" style="padding-left: 15px; padding-bottom: 15px">
             <span class="step-links">
                 {% if page_obj.has_previous %}
-                <a href="?page=1">&laquo; first</a>
-                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                    <a href="?page=1">&laquo; first</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">previous</a>
                 {% endif %}
 
                 <span class="current">
@@ -440,11 +312,10 @@
                 </span>
 
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}">next</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    <a href="?page={{ page_obj.next_page_number }}">next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
                 {% endif %}
             </span>
         </div>
     </div>
-
 {% endblock %}

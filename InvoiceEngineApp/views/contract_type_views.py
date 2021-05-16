@@ -44,11 +44,11 @@ class ContractTypeUpdateView(ParentUpdateView):
     def get_object(self, queryset=ContractType.objects.all()):
         contract_type_id = self.kwargs.get('contract_type_id')
         qs = queryset.filter(contract_type_id=contract_type_id)
-        contract_type = super().filter_by_tenancy(qs)
+        qs = super().filter_by_tenancy(qs)
+        contract_type = get_object_or_404(qs)
 
         if not contract_type.can_update_or_delete():
             raise Http404('No Contract type matches the given query.')
-
         return contract_type
 
 
@@ -63,9 +63,9 @@ class ContractTypeDeleteView(ParentDeleteView):
     def get_object(self, queryset=ContractType.objects.all()):
         contract_type_id = self.kwargs.get('contract_type_id')
         qs = queryset.filter(contract_type_id=contract_type_id)
-        contract_type = super().filter_by_tenancy(qs)
+        qs = super().filter_by_tenancy(qs)
+        contract_type = get_object_or_404(qs)
 
         if not contract_type.can_update_or_delete():
             raise Http404('No Contract type matches the given query.')
-
         return contract_type

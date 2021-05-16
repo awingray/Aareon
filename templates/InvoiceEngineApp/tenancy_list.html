@@ -27,9 +27,6 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'invoice_list' object.company_id %}">Invoices</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'glpost_list' object.company_id %}">General ledger</a>
-                        </li>
                     </ul>
                     <a class="btn btn-primary" href="{% url 'tenancy_details' object.company_id %}">Details</a>
                     <a class="btn btn-primary"href="{% url 'tenancy_update' object.company_id %}">Update</a>
