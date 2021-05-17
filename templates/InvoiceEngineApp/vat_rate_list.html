@@ -21,6 +21,7 @@
                                 {% if forloop.first %}
                                     <thead>
                                         <tr class="border-bottom">
+                                            <td><p style="font-size: 20px">Type</p></td>
                                             <td><p style="font-size: 20px">Description</p></td>
                                             <td><p style="font-size: 20px">Percentage</p></td>
                                             <td><p style="font-size: 20px">Start date</p></td>
@@ -33,6 +34,7 @@
                                 {% endif %}
                                 <tbody>
                                     <tr>
+                                        <td>{{ object.type }}</td>
                                         <td>{{ object.description }}</td>
                                         <td>{{ object.percentage }}%</td>
                                         <td>{{ object.start_date }}</td>

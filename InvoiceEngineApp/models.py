@@ -2,14 +2,13 @@ import datetime
 
 from django.db import models, transaction
 from django.db.models import Q, F
-from django.shortcuts import get_object_or_404
 
 
 def get_next_invoice_id():
     """Static function to return the highest possible invoice id and invoice
-    line id. Needed because the ids are needed for other objects to refer to
-    in their foreign key. This is done before the invoices and invoice lines
-    are added to the database, so the automatic primary key has not been
+    line id. Function needed because the ids are needed for other objects to
+    refer to in their foreign key. This is done before the invoices and invoice
+    lines are added to the database, so automatic primary keys have not been
     generated yet.
     """
     next_invoice_id = 0
@@ -26,12 +25,9 @@ def get_next_invoice_id():
 
 
 class Tenancy(models.Model):
-    """The tenancy defines the organization using the model.
-    All other classes will have an (indirect) reference to the tenancy,
-    in order to keep track of who is allowed to access the data.
-
-    A tenant can manage multiple companies, but one company cannot be managed
-    by multiple tenants. Therefore, the company_id is the primary key.
+    """This class represents a company. Only a user with the same username as
+    the tenancy_id has access to this company and all its data. Therefore,
+    every other object (indirectly) foreign-keys to this object.
     """
     company_id = models.AutoField(primary_key=True)
     tenancy_id = models.PositiveIntegerField()
@@ -45,6 +41,9 @@ class Tenancy(models.Model):
 
     def __str__(self):
         return self.name
+
+    def create(self, kwargs):
+        pass
 
     def get_details(self):
         """Method to print all fields and their values."""
@@ -70,10 +69,11 @@ class Tenancy(models.Model):
         # Load all components into memory
         components = list(
             self.component_set.filter(
-                date_next_prolongation__isnull=False,
-                contract__date_next_prolongation__isnull=False,
-                contract__date_next_prolongation__lte=date_today,
-                contract__status=Contract.ACTIVE
+                (Q(contract__status=Contract.ACTIVE)
+                 | Q(contract__status=Contract.ENDED))
+                & Q(date_next_prolongation__isnull=False)
+                & Q(contract__date_next_prolongation__isnull=False)
+                & Q(contract__date_next_prolongation__lte=date_today)
             ).order_by(
                 'contract_id'
             ).select_related(
@@ -84,10 +84,6 @@ class Tenancy(models.Model):
         if not components:
             # There are no contracts to prolong
             return
-
-        # Set the id for the next invoice & invoice line.
-        # Take the highest id that is currently in the database and add 1
-        next_invoice_id, next_invoice_line_id = get_next_invoice_id()
 
         # Load all contract persons into memory
         contract_persons = list(
@@ -103,6 +99,10 @@ class Tenancy(models.Model):
         new_invoice_lines = []
         new_gl_posts = []
         new_collections = []
+
+        # Set the id for the next invoice & invoice line.
+        # Take the highest id that is currently in the database and add 1
+        next_invoice_id, next_invoice_line_id = get_next_invoice_id()
 
         # Create an invoice for the first component's contract
         invoice = components[0].contract.invoice(
@@ -124,6 +124,7 @@ class Tenancy(models.Model):
                     contract_persons[0].invoice(self, invoice, new_collections)
                     contract_persons.pop(0)
 
+                # Create GL posts for the finished invoice
                 invoice.create_gl_post(new_gl_posts)
 
                 # Create an invoice for the next contract
@@ -133,6 +134,7 @@ class Tenancy(models.Model):
                 new_invoices.append(invoice)
                 next_invoice_id += 1
 
+            # Create an invoice line and associated GL posts for this component
             component.invoice(
                 next_invoice_line_id, invoice, new_invoice_lines, new_gl_posts
             )
@@ -148,19 +150,11 @@ class Tenancy(models.Model):
         invoice.create_gl_post(new_gl_posts)
 
         # End of main program loop
-        # Add new objects to the database
-        print("Received all new objects")
-        print(
-            "Starting database transaction at "
-            + datetime.datetime.now().__str__()
-        )
         # Save the changes made to the database in one transaction
         # If one fails, they will all fail
         with transaction.atomic():
-            print(
-                "Starting 'bulk update' of components & contracts at "
-                + datetime.datetime.now().__str__()
-            )
+            # Loop over the components and associated contracts to update them
+            # Bulk update might overload the CPU in this case
             previous_contract = -1
             for component in components:
                 if component.contract_id != previous_contract:
@@ -186,48 +180,34 @@ class Tenancy(models.Model):
                 )
                 previous_contract = component.contract_id
 
-            print(
-                "Starting bulk create of invoices at "
-                + datetime.datetime.now().__str__()
-            )
             Invoice.objects.bulk_create(new_invoices)
-            print(
-                "Starting bulk create of invoice lines at "
-                + datetime.datetime.now().__str__()
-            )
             InvoiceLine.objects.bulk_create(new_invoice_lines)
-            print(
-                "Starting bulk create of general ledger posts at "
-                + datetime.datetime.now().__str__()
-            )
             GeneralLedgerPost.objects.bulk_create(new_gl_posts)
-            print(
-                "Starting bulk create of collections at "
-                + datetime.datetime.now().__str__()
-            )
             Collection.objects.bulk_create(new_collections)
 
             # Save the tenancy with the new last_invoice_number
-            self.save(
-                update_fields=[
-                    'last_invoice_number'
-                ]
-            )
+            self.save(update_fields=['last_invoice_number'])
 
 
 class TenancyDependentModel(models.Model):
+    """This abstract class is inherited by models which directly refer to the
+    tenancy model in their foreign key.
+    """
     tenancy = models.ForeignKey(Tenancy, on_delete=models.CASCADE)
+
+    def create(self, kwargs):
+        """Method called when an instance of this class is created, to set
+        the tenancy.
+        """
+        self.tenancy_id = kwargs.get('company_id')
 
     class Meta:
         abstract = True
 
 
 class ContractType(TenancyDependentModel):
-    """A company may have contracts for different services, for instance a
-    housing provider which has different contracts for different types of
-    apartments, parking spaces, garages, etc.
-
-    A contract type always corresponds to a tenancy.
+    """This class represents a certain type of contract, for instance for
+    different kinds of rental cars for which they can make contracts.
     """
     contract_type_id = models.AutoField(primary_key=True)
     code = models.PositiveIntegerField()
@@ -239,10 +219,10 @@ class ContractType(TenancyDependentModel):
     def __str__(self):
         return self.description
 
-    def create(self, tenancy):
-        self.tenancy = tenancy
-
     def can_update_or_delete(self):
+        """Method to determine whether the instance can be updated
+        or deleted.
+        """
         return not self.contract_set.exists()
 
 
@@ -266,11 +246,10 @@ class BaseComponent(TenancyDependentModel):
                + " - unit " \
                + self.unit_id.__str__() if self.unit_id else self.description
 
-    def create(self, tenancy):
-        self.tenancy = tenancy
-
     def can_update_or_delete(self):
-        return not self.component_set.exists()
+        return not self.component_set.filter(
+            date_prev_prolongation__isnull=False
+        ).exists()
 
 
 class VATRate(TenancyDependentModel):
@@ -291,9 +270,6 @@ class VATRate(TenancyDependentModel):
     percentage = models.FloatField()
     gl_account = models.CharField(max_length=10)
     gl_dimension = models.CharField(max_length=10)
-
-    def create(self, tenancy):
-        self.tenancy = tenancy
 
     def __str__(self):
         return "Type " \
@@ -319,13 +295,6 @@ class VATRate(TenancyDependentModel):
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
-        super().save(
-            force_insert=force_insert,
-            force_update=force_update,
-            using=using,
-            update_fields=update_fields
-        )
-
         # Try to find other VAT rate with the same type
         # There should only be one active
         old_vat_rate_qs = self.tenancy.vatrate_set.filter(
@@ -333,23 +302,36 @@ class VATRate(TenancyDependentModel):
             & (Q(end_date__isnull=True) | Q(end_date__gte=self.start_date))
             & Q(start_date__lt=self.start_date)
         )
-
+        old_vat_rate = None
+        do_delete = False
         if old_vat_rate_qs.exists():
             old_vat_rate = old_vat_rate_qs.first()
 
-            old_vat_rate.successor_vat_rate = self
-            old_vat_rate.end_date = (self.start_date
-                                     - datetime.timedelta(days=1))
+            if old_vat_rate.can_update_or_delete():
+                do_delete = True
+            else:
+                old_vat_rate.successor_vat_rate = self
+                old_vat_rate.end_date = (self.start_date - datetime.timedelta(days=1))
 
-            old_vat_rate.save(
-                update_fields=['successor_vat_rate', 'end_date']
+        with transaction.atomic():
+            if old_vat_rate:
+                if do_delete:
+                    old_vat_rate.delete()
+                else:
+                    old_vat_rate.save(
+                        update_fields=['successor_vat_rate', 'end_date']
+                    )
+            super().save(
+                force_insert=force_insert,
+                force_update=force_update,
+                using=using,
+                update_fields=update_fields
             )
 
     def delete(self, using=None, keep_parents=False):
         with transaction.atomic():
             self.update_components(do_remove=True)
             super().delete(using, keep_parents)
-
 
 
 class Contract(TenancyDependentModel):
@@ -443,8 +425,8 @@ class Contract(TenancyDependentModel):
             if key == self.invoicing_period:
                 return value
 
-    def create(self, tenancy):
-        self.tenancy = tenancy
+    def create(self, kwargs):
+        super().create(kwargs)
         self.tenancy.number_of_contracts = F('number_of_contracts') + 1
         self.tenancy.save(update_fields=['number_of_contracts'])
 
@@ -528,8 +510,9 @@ class Contract(TenancyDependentModel):
 
     def delete(self, using=None, keep_parents=False):
         self.tenancy.number_of_contracts = F('number_of_contracts') - 1
-        self.tenancy.save(update_fields=['number_of_contracts'])
-        super().delete(using, keep_parents)
+        with transaction.atomic():
+            self.tenancy.save(update_fields=['number_of_contracts'])
+            super().delete(using, keep_parents)
 
     def compute_date_next_prolongation(self, previous_date):
         """Based on the invoicing period and the date of the last invoice,
@@ -625,13 +608,14 @@ class Component(TenancyDependentModel):
     def __str__(self):
         return self.description
 
-    def set_tenancy_and_contract(self, tenancy, contract):
-        self.tenancy = tenancy
-        self.contract = contract
-
-    def create(self):
+    def create(self, kwargs):
         """Also check if this component replaces an existing component.
         """
+        super().create(kwargs)
+        self.contract = Contract.objects.get(
+            contract_id=kwargs.get('contract_id')
+        )
+
         self.date_next_prolongation = self.start_date
         self.unit_id = self.base_component.unit_id
         self.end_date = self.contract.end_date  # May still be None
@@ -1074,13 +1058,6 @@ class ContractPerson(TenancyDependentModel):
     def can_delete(self):
         return not self.contract.start_date
 
-    def create(self, tenancy, contract_id):
-        self.tenancy = tenancy
-        self.contract = get_object_or_404(
-            Contract,
-            contract_id=contract_id
-        )
-
     def invoice(self, tenancy, invoice, new_collections):
         """Create collection objects when the invoice has been finished."""
         new_collections.append(
@@ -1237,18 +1214,3 @@ class GeneralLedgerPost(TenancyDependentModel):
     description = models.CharField(max_length=30)
     amount_debit = models.FloatField()
     amount_credit = models.FloatField()
-
-    def get_details(self):
-        return {
-            'invoice': self.invoice,
-            'invoice line': self.invoice_line,
-            'date': self.date,
-            'gl account': self.gl_account,
-            'gl dimension bc': self.gl_dimension_base_component,
-            'gl dimension contr 1': self.gl_dimension_contract_1,
-            'gl dimension contr 2': self.gl_dimension_contract_2,
-            'gl dimension vat': self.gl_dimension_vat,
-            'description': self.description,
-            'debit': self.amount_debit,
-            'credit': self.amount_credit
-        }

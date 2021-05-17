@@ -15,15 +15,17 @@
                         <table class="table table-borderless">
                             <thead>
                                 <tr class="border-bottom">
-                                    <td>Invoice Number</td>
-                                    <td>Description</td>
-                                    <td>Date</td>
-                                    <td>Expiration Date</td>
-                                    <td style="text-align: right">Base amount</td>
-                                    <td style="text-align: right">VAT</td>
-                                    <td style="text-align: right">Total amount</td>
-                                    <td style="text-align: right">Balance</td>
-                                    <td style="text-align: center">Payment Received</td>
+                                    <td><p style="font-size: 20px">Invoice Number</p></td>
+                                    <td><p style="font-size: 20px">Description</p></td>
+                                    <td><p style="font-size: 20px">Date</p></td>
+                                    <td><p style="font-size: 20px">Expiration Date</p></td>
+                                    <td><p style="font-size: 20px">Customer ID</p></td>
+                                    <td><p style="font-size: 20px">General ledger account</p></td>
+                                    <td style="text-align: right"><p style="font-size: 20px">Base amount</p></td>
+                                    <td style="text-align: right"><p style="font-size: 20px">VAT</p></td>
+                                    <td style="text-align: right"><p style="font-size: 20px">Total amount</p></td>
+                                    <td style="text-align: right"><p style="font-size: 20px">Balance</p></td>
+                                    <td style="text-align: center"><p style="font-size: 20px">Payment Received</p></td>
                                 </tr>
                             </thead>
                             <tbody>
@@ -33,11 +35,13 @@
                                         <td>{{ object.description }}</td>
                                         <td>{{ object.date }}</td>
                                         <td>{{ object.expiration_date }}</td>
+                                        <td>{{ object.external_customer_id }}</td>
+                                        <td>{{ object.gl_account }}</td>
                                         <td style="text-align: right">€{{ object.base_amount|floatformat:2 }}</td>
                                         <td style="text-align: right">€{{ object.vat_amount|floatformat:2 }}</td>
                                         <td style="text-align: right">€{{ object.total_amount|floatformat:2 }}</td>
                                         <td style="text-align: right">€{{ object.balance|floatformat:2 }}</td>
-                                        <td style="text-align: center">Payment received?</td>
+                                        <td style="text-align: center">Unimplemented</td>
                                         <td><a class="link-primary" href="{% url 'invoice_details' company_id object.invoice_id %}">Details</a></td>
                                     </tr>
                                 {% endfor %}

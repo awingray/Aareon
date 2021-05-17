@@ -71,9 +71,11 @@ class ContractForm(forms.ModelForm):
     Tenancy is added automatically.
     The user can choose contract type from a drop-down menu.
     """
-    def filter_selectors(self, tenancy):
+    def filter_selectors(self, company_id):
         self.fields['contract_type'].queryset = \
-            models.ContractType.objects.filter(tenancy=tenancy)
+            models.ContractType.objects.filter(
+                tenancy_id=company_id
+            )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -231,18 +233,17 @@ class ContractSearchForm(forms.Form):
 
 class ComponentForm(forms.ModelForm):
     """A form for the user to set the fields of a component."""
-    def filter_selectors(self, tenancy):
+    def filter_selectors(self, company_id):
         """Filter the querysets of the selectors for base component
         and VAT rate based on the tenancy and the VAT rate's end date.
         """
         self.fields['base_component'].queryset = \
             models.BaseComponent.objects.filter(
-                tenancy=tenancy
+                tenancy_id=company_id
             )
         self.fields['vat_rate'].queryset = \
             models.VATRate.objects.filter(
-                tenancy=tenancy,
-                end_date__isnull=True
+                tenancy_id=company_id
             )
 
     def clean(self):

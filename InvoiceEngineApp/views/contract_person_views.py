@@ -10,7 +10,6 @@ from InvoiceEngineApp.models import ContractPerson
 
 @login_required
 def contract_person_update_view(request, company_id, contract_id):
-
     FormSet = modelformset_factory(
         ContractPerson,
         exclude=('contract', 'tenancy'),

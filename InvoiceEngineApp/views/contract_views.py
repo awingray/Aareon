@@ -1,5 +1,5 @@
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 
@@ -74,13 +74,16 @@ class ContractListView(ParentListView):
     template_name = 'InvoiceEngineApp/contract_list.html'
     form_class = ContractSearchForm
     model = Contract
+    ordering = ['date_next_prolongation']
 
     def get_context_data(self, **kwargs):
+        """Add the search form to the context data."""
         context = super().get_context_data(**kwargs)
         context['form'] = self.form_class(self.request.GET)
         return context
 
     def get_queryset(self):
+        """Filter the queryset based on the submitted search form."""
         # Get the contract list filtered by tenancy
         qs = super().get_queryset()
         form = self.form_class(self.request.GET)
@@ -92,26 +95,16 @@ class ContractListView(ParentListView):
 
 
 class ContractCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ContractForm
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract"
-        self.list_page = "contract_list"
+    list_page = "contract_list"
 
     def get_form(self, form_class=None):
         """Overloaded to filter the selection of contract types based on the
         tenancy.
         """
         form = super().get_form()
-        form.filter_selectors(self.tenancy)
+        form.filter_selectors(self.kwargs.get('company_id'))
         return form
-
-    def form_valid(self, form):
-        self.object = form.instance
-        self.object.create(self.tenancy)
-        return super().form_valid(form)
 
 
 class ContractDetailView(ParentListView):
@@ -119,18 +112,12 @@ class ContractDetailView(ParentListView):
     is has to list all invoices corresponding to the contract.
     """
     template_name = 'InvoiceEngineApp/contract_details.html'
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract"
-        self.list_page = "contract_list"
-        self.object = None
+    ordering = ['-date']
+    object = None
 
     def get_object(self, queryset=Contract.objects.all()):
-        contract_id = self.kwargs.get('contract_id')
         qs = queryset.filter(
-            contract_id=contract_id,
-            tenancy__tenancy_id=self.request.user.username
+            contract_id=self.kwargs.get('contract_id'),
         )
         return get_object_or_404(qs)
 
@@ -141,32 +128,15 @@ class ContractDetailView(ParentListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['object'] = self.object
-        context['list_page'] = [
-            self.list_page,
-            self.kwargs.get('company_id')
-        ]
         return context
 
 
 class ContractUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/display_form.html'
+    model = Contract
     form_class = ContractForm
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract"
-        self.list_page = "contract_details"
-
-    def get_object(self, queryset=Contract.objects.all()):
-        contract_id = self.kwargs.get('contract_id')
-        qs = queryset.filter(contract_id=contract_id)
-        qs = super().filter_by_tenancy(qs)
-        contract = get_object_or_404(qs)
-
-        if not contract.can_update_or_delete():
-            raise Http404('No Contract matches the given query.')
-
-        return contract
+    list_page = "contract_details"
+    pk_url_kwarg = 'contract_id'
+    is_contract = True
 
     def get_form(self, form_class=None):
         """Overloaded to filter the selection of contract types based on the
@@ -176,31 +146,10 @@ class ContractUpdateView(ParentUpdateView):
         form.filter_selectors(self.object.tenancy)
         return form
 
-    def get_success_url(self):
-        return reverse(
-            self.list_page,
-            args=[
-                self.kwargs.get('company_id'),
-                self.kwargs.get('contract_id')
-            ]
-        )
-
 
 class ContractDeleteView(ParentDeleteView):
-    template_name = 'InvoiceEngineApp/delete.html'
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract"
-        self.list_page = "contract_list"
-
-    def get_object(self, queryset=Contract.objects.all()):
-        contract_id = self.kwargs.get('contract_id')
-        qs = queryset.filter(contract_id=contract_id)
-        qs = super().filter_by_tenancy(qs)
-        contract = get_object_or_404(qs)
-
-        if not contract.can_update_or_delete():
-            raise Http404('No Contract matches the given query.')
-
-        return contract
+    model = Contract
+    list_page = "contract_details"
+    success_page = "contract_list"
+    pk_url_kwarg = 'contract_id'
+    is_contract = True

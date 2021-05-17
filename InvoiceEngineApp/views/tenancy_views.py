@@ -28,6 +28,7 @@ from InvoiceEngineApp.models import (
 )
 
 
+@login_required(login_url='/login/')
 def export_collections(request, company_id):
     date = Invoice.objects.aggregate(Max('date')).get('date__max')
     collection_list = list(
@@ -86,18 +87,21 @@ def export_collections(request, company_id):
     return response
 
 
+@login_required(login_url='/login/')
 def export_invoices(request, company_id):
     return general_export(
         Invoice, company_id, request.user.username, "invoices"
     )
 
 
+@login_required(login_url='/login/')
 def export_glposts(request, company_id):
     return general_export(
         GeneralLedgerPost, company_id, request.user.username, "glposts"
     )
 
 
+@login_required(login_url='/login/')
 def general_export(model, company_id, tenancy_id, file_name):
     date = Invoice.objects.aggregate(Max('date')).get('date__max')
     qs = list(
@@ -126,6 +130,7 @@ def general_export(model, company_id, tenancy_id, file_name):
     return response
 
 
+@login_required(login_url='/login/')
 def invoice_contracts_view(request, company_id):
     tenancy = get_object_or_404(
         Tenancy.objects.filter(

@@ -146,10 +146,6 @@ urlpatterns = [
          ComponentDeleteView.as_view(),
          name='component_delete'
          ),
-    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/<int:component_id>/deactivate/',
-         ComponentDeactivationView.as_view(),
-         name='component_deactivate'
-         ),
 
     # Contract person pages.
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/update/',
