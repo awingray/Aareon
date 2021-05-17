@@ -110,6 +110,9 @@ class ComponentUpdateView(ParentUpdateView):
         """Overload the form valid function to perform additional logic in the
         form.
         """
+        # self.object.update()
+        # return HttpResponseRedirect(self.get_success_url())
+        self.object = form.save(commit=False)
         self.object.update()
         return super().form_valid(form)
 

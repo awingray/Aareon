@@ -57,11 +57,6 @@ class VATRateForm(forms.ModelForm):
                 "End date should be on or after start date."
             )
 
-        if start_date < datetime.date.today():
-            raise forms.ValidationError(
-                "Start date can only be today or in the future."
-            )
-
         percentage = cleaned_data.get("percentage")
         if percentage > 100.0:
             raise forms.ValidationError(
@@ -101,7 +96,7 @@ class ContractForm(forms.ModelForm):
         exclude = [
             'tenancy', 'date_next_prolongation',
             'balance', 'base_amount', 'vat_amount', 'total_amount',
-            'date_prev_prolongation', 'end_date', 'start_date'
+            'date_prev_prolongation', 'end_date', 'start_date', 'status'
         ]
 
 

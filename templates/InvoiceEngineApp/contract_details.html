@@ -151,10 +151,10 @@
                                                 <td><p style="font-size: 20px">Last invoice</p></td>
                                                 <td><p style="font-size: 20px">Unit ID</p></td>
                                                 <td><p style="font-size: 20px"># Units</p></td>
-                                                <td><p style="font-size: 20px">Unit price</p></td>
-                                                <td><p style="font-size: 20px">Base price</p></td>
-                                                <td><p style="font-size: 20px">VAT</p></td>
-                                                <td><p style="font-size: 20px">Total</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">Unit price</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">Base price</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">VAT</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">Total</p></td>
                                                 <td></td>
                                             </tr>
                                         </thead>
@@ -169,10 +169,10 @@
                                             <td>{{ component.date_prev_prolongation }}</td>
                                             <td>{{ component.unit_id }}</td>
                                             <td>{{ component.number_of_units }}</td>
-                                            <td style="text-align: right">{{ component.unit_amount|floatformat:2 }}</td>
-                                            <td style="text-align: right">{{ component.base_amount|floatformat:2 }}</td>
-                                            <td style="text-align: right">{{ component.vat_amount|floatformat:2 }}</td>
-                                            <td style="text-align: right">{{ component.total_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">€{{ component.unit_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">€{{ component.base_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">€{{ component.vat_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">€{{ component.total_amount|floatformat:2 }}</td>
                                             <td style="text-align: center">
                                                 <a class="link-primary" href="{% url 'component_update' company_id object.contract_id component.component_id %}">Update</a>
                                                 <a class="link-primary" href="{% url 'component_delete' company_id object.contract_id component.component_id %}">Delete</a>

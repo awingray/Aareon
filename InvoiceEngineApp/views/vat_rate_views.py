@@ -56,6 +56,11 @@ class VATRateUpdateView(ParentUpdateView):
             raise Http404('No VAT rate matches the given query.')
         return vat_rate
 
+    def form_valid(self, form):
+        self.object = form.instance
+        self.object.update_components()
+        return super().form_valid(form)
+
 
 class VATRateDeleteView(ParentDeleteView):
     template_name = 'InvoiceEngineApp/delete.html'
@@ -77,3 +82,6 @@ class VATRateDeleteView(ParentDeleteView):
             # components prevent this VAT rate from being deactivated
             raise Http404('No VAT rate matches the given query.')
         return vat_rate
+
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)

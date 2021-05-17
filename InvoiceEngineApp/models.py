@@ -309,6 +309,14 @@ class VATRate(TenancyDependentModel):
             date_prev_prolongation__isnull=False
         ).exists()
 
+    def update_components(self, do_remove):
+        with transaction.atomic():
+            for component in self.component_set.select_related('contract'):
+                if do_remove:
+                    component.vat_rate = None
+                component.remove_from_contract()
+                component.update()
+
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         super().save(
@@ -318,27 +326,30 @@ class VATRate(TenancyDependentModel):
             update_fields=update_fields
         )
 
-        # Check for an existing VAT rate of the same type to succeed if this is
-        # a create (not an update)
-        if not (force_update or update_fields):
-            # Try to find other VAT rate with the same type
-            # There should only be one active
-            old_vat_rate_qs = self.tenancy.vatrate_set.filter(
-                Q(type=self.type)
-                & (Q(end_date__isnull=True) | Q(end_date__gte=self.start_date))
-                & Q(start_date__lt=self.start_date)
+        # Try to find other VAT rate with the same type
+        # There should only be one active
+        old_vat_rate_qs = self.tenancy.vatrate_set.filter(
+            Q(type=self.type)
+            & (Q(end_date__isnull=True) | Q(end_date__gte=self.start_date))
+            & Q(start_date__lt=self.start_date)
+        )
+
+        if old_vat_rate_qs.exists():
+            old_vat_rate = old_vat_rate_qs.first()
+
+            old_vat_rate.successor_vat_rate = self
+            old_vat_rate.end_date = (self.start_date
+                                     - datetime.timedelta(days=1))
+
+            old_vat_rate.save(
+                update_fields=['successor_vat_rate', 'end_date']
             )
 
-            if old_vat_rate_qs.exists():
-                old_vat_rate = old_vat_rate_qs.first()
+    def delete(self, using=None, keep_parents=False):
+        with transaction.atomic():
+            self.update_components(do_remove=True)
+            super().delete(using, keep_parents)
 
-                old_vat_rate.successor_vat_rate = self
-                old_vat_rate.end_date = (self.start_date
-                                         - datetime.timedelta(days=1))
-
-                old_vat_rate.save(
-                    update_fields=['successor_vat_rate', 'end_date']
-                )
 
 
 class Contract(TenancyDependentModel):
@@ -593,7 +604,7 @@ class Component(TenancyDependentModel):
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
     base_component = models.ForeignKey(BaseComponent, on_delete=models.CASCADE)
     vat_rate = models.ForeignKey(
-        VATRate, null=True, blank=True, on_delete=models.CASCADE
+        VATRate, null=True, blank=True, on_delete=models.SET_NULL
     )
     description = models.CharField(max_length=50)
     start_date = models.DateField()
@@ -814,8 +825,14 @@ class Component(TenancyDependentModel):
         return base_factor, vat_factor, total_factor, unit_factor
 
     def update(self):
+        if self.vat_amount and not self.vat_rate:
+            self.total_amount -= self.vat_amount
+            self.vat_amount = 0
         self.set_derived_fields()
-        self.contract.save()
+
+        with transaction.atomic():
+            self.contract.save()
+            self.save()
 
     def can_update_or_delete(self):
         return self.date_prev_prolongation is None
@@ -830,10 +847,11 @@ class Component(TenancyDependentModel):
         # Remove the amounts from the contract
         self.remove_from_contract()
 
-        self.contract.save(
-            update_fields=['total_amount', 'vat_amount', 'base_amount']
-        )
-        super().delete(using, keep_parents)
+        with transaction.atomic():
+            self.contract.save(
+                update_fields=['total_amount', 'vat_amount', 'base_amount']
+            )
+            super().delete(using, keep_parents)
 
     def deactivate(self):
         # Deactivation is setting the end date. If this is set to a date which
