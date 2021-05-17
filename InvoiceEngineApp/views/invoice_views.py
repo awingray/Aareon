@@ -17,7 +17,7 @@ class InvoiceListView(ParentListView):
 
 
 class InvoiceDetailView(ParentDetailView):
-    template_name = 'InvoiceEngineApp/details.html'
+    template_name = 'InvoiceEngineApp/invoice_details.html'
 
     def __init__(self):
         super().__init__()

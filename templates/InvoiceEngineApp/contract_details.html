@@ -21,7 +21,7 @@
                             <table class="table">
                                 <tbody>
                                     <tr>
-                                        <td>Tenancy</td>
+                                        <td>Company</td>
                                         <td>{{object.tenancy}}</td>
                                     </tr>
                                     <tr>
@@ -263,11 +263,11 @@
                                                 <td><p style="font-size: 20px">Expiration date</p></td>
                                                 <td><p style="font-size: 20px">Customer ID</p></td>
                                                 <td><p style="font-size: 20px">General ledger account</p></td>
-                                                <td><p style="font-size: 20px">Base amount</p></td>
-                                                <td><p style="font-size: 20px">VAT</p></td>
-                                                <td><p style="font-size: 20px">Total</p></td>
-                                                <td><p style="font-size: 20px">Balance</p></td>
-                                                <td><p style="font-size: 20px">Paid</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">Base amount</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">VAT</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">Total</p></td>
+                                                <td><p style="font-size: 20px; text-align: right">Balance</p></td>
+                                                <td><p style="font-size: 20px; text-align: center">Paid</p></td>
                                                 <td></td>
                                             </tr>
                                         </thead>
@@ -280,14 +280,13 @@
                                             <td>{{ invoice.expiration_date }}</td>
                                             <td>{{ invoice.external_customer_id }}</td>
                                             <td>{{ invoice.gl_account }}</td>
-                                            <td style="text-align: right">{{ invoice.base_amount|floatformat:2 }}</td>
-                                            <td style="text-align: right">{{ invoice.vat_amount|floatformat:2 }}</td>
-                                            <td style="text-align: right">{{ invoice.total_amount|floatformat:2 }}</td>
-                                            <td style="text-align: right">{{ invoice.balance|floatformat:2 }}</td>
-                                            <td>Unimplemented</td>
-                                            <td style="text-align: center">
-                                                <a class="link-primary" href="{% url 'component_update' company_id object.contract_id component.component_id %}">Update</a>
-                                                <a class="link-primary" href="{% url 'component_delete' company_id object.contract_id component.component_id %}">Delete</a>
+                                            <td style="text-align: right">€{{ invoice.base_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">€{{ invoice.vat_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">€{{ invoice.total_amount|floatformat:2 }}</td>
+                                            <td style="text-align: right">€{{ invoice.balance|floatformat:2 }}</td>
+                                            <td style="text-align: center;">Unimplemented</td>
+                                            <td>
+                                                <a class="link-primary" href="{% url 'invoice_details' company_id invoice.invoice_id %}">Details</a>
                                             </td>
                                         </tr>
                                     </tbody>

@@ -421,10 +421,7 @@ class Contract(TenancyDependentModel):
     total_amount = models.FloatField(default=0.0)
 
     def __str__(self):
-        return "Contact: " \
-               + self.tenancy.name \
-               + " - " \
-               + self.contract_type.description
+        return self.contract_type.description
 
     def get_components(self):
         return self.component_set.all()
@@ -626,7 +623,7 @@ class Component(TenancyDependentModel):
     number_of_units = models.FloatField(null=True, blank=True)
 
     def __str__(self):
-        return "Component: " + self.description
+        return self.description
 
     def set_tenancy_and_contract(self, tenancy, contract):
         self.tenancy = tenancy
@@ -1117,20 +1114,6 @@ class Invoice(TenancyDependentModel):
 
     def get_invoice_lines(self):
         return self.invoiceline_set.all()
-
-    def get_details(self):
-        """Method to print all fields and their values."""
-        return {'external customer id': self.external_customer_id,
-                'description': self.description,
-                'base amount': self.base_amount,
-                'vat amount': self.vat_amount,
-                'total amount': self.total_amount,
-                'balance': self.balance,
-                'date': self.date,
-                'expiration date': self.expiration_date,
-                'invoice number': self.invoice_number,
-                'general ledger account': self.gl_account,
-                }
 
     def create_gl_post(self, new_gl_posts):
         new_gl_posts.append(

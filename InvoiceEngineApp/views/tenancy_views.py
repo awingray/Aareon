@@ -1,10 +1,11 @@
 import csv
+import multiprocessing
 import zipfile
 from io import BytesIO, StringIO
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -15,6 +16,9 @@ from django.views.generic import (
     UpdateView,
     DeleteView
 )
+
+from InvoiceEngineApp.forms import TenancyAdministratorForm, \
+    TenancySubscriberForm
 from InvoiceEngineApp.models import (
     Tenancy,
     Collection,
@@ -22,7 +26,6 @@ from InvoiceEngineApp.models import (
     GeneralLedgerPost,
     ContractPerson
 )
-from InvoiceEngineApp.forms import TenancyAdministratorForm, TenancySubscriberForm
 
 
 def export_collections(request, company_id):
@@ -112,7 +115,6 @@ def general_export(model, company_id, tenancy_id, file_name):
     response["Content-Disposition"] = \
         'attachment; filename="{}_{}.csv"'.format(file_name, date)
 
-
     opts = model._meta
     writer = csv.writer(response)
     field_names = [field.name for field in opts.fields]
@@ -124,21 +126,24 @@ def general_export(model, company_id, tenancy_id, file_name):
     return response
 
 
+def invoice_contracts_view(request, company_id):
+    tenancy = get_object_or_404(
+        Tenancy.objects.filter(
+            company_id=company_id,
+            tenancy_id=request.user.username
+        )
+    )
+    p = multiprocessing.Process(target=tenancy.invoice_contracts)
+    p.start()
+    p.join()
+    return HttpResponseRedirect(reverse('tenancy_list'))
+
+
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class TenancyListView(ListView):
     """Show the user a list of all tenancies available to them."""
     model = Tenancy
     paginate_by = 10
-
-    def invoice_contracts(self, company_id):
-        # This function is for testing the invoice engine!
-        tenancy = get_object_or_404(
-            Tenancy.objects.filter(
-                company_id=company_id,
-            )
-        )
-        tenancy.invoice_contracts()
-        return HttpResponse("Invoicing started!")
 
     def get_template_names(self):
         # super().get_template_names()

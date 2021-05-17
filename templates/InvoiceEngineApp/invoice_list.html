@@ -19,11 +19,11 @@
                                     <td>Description</td>
                                     <td>Date</td>
                                     <td>Expiration Date</td>
-                                    <td>Base amount</td>
-                                    <td>VAT</td>
-                                    <td>Total amount</td>
-                                    <td>Balance</td>
-                                    <td>Payment Received</td>
+                                    <td style="text-align: right">Base amount</td>
+                                    <td style="text-align: right">VAT</td>
+                                    <td style="text-align: right">Total amount</td>
+                                    <td style="text-align: right">Balance</td>
+                                    <td style="text-align: center">Payment Received</td>
                                 </tr>
                             </thead>
                             <tbody>
@@ -33,12 +33,12 @@
                                         <td>{{ object.description }}</td>
                                         <td>{{ object.date }}</td>
                                         <td>{{ object.expiration_date }}</td>
-                                        <td data-align="right">€{{ object.base_amount|floatformat:2 }}</td>
-                                        <td data-align="right">€{{ object.vat_amount|floatformat:2 }}</td>
-                                        <td data-align="right">€{{ object.total_amount|floatformat:2 }}</td>
-                                        <td data-align="right">€{{ object.balance|floatformat:2 }}</td>
-                                        <td>Payment received?</td>
-                                        <td><a class="nav-link" href="{% url 'invoice_details' company_id object.invoice_id %}">Details</a></td>
+                                        <td style="text-align: right">€{{ object.base_amount|floatformat:2 }}</td>
+                                        <td style="text-align: right">€{{ object.vat_amount|floatformat:2 }}</td>
+                                        <td style="text-align: right">€{{ object.total_amount|floatformat:2 }}</td>
+                                        <td style="text-align: right">€{{ object.balance|floatformat:2 }}</td>
+                                        <td style="text-align: center">Payment received?</td>
+                                        <td><a class="link-primary" href="{% url 'invoice_details' company_id object.invoice_id %}">Details</a></td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
