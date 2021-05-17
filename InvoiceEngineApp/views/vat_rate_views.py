@@ -21,7 +21,7 @@ class VATRateListView(ParentListView):
 
 
 class VATRateCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = VATRateForm
 
     def __init__(self):
@@ -36,7 +36,7 @@ class VATRateCreateView(ParentCreateView):
 
 
 class VATRateUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = VATRateForm
 
     def __init__(self):
@@ -58,7 +58,7 @@ class VATRateUpdateView(ParentUpdateView):
 
     def form_valid(self, form):
         self.object = form.instance
-        self.object.update_components()
+        self.object.update_components(do_remove=False)
         return super().form_valid(form)
 
 

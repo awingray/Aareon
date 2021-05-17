@@ -18,7 +18,7 @@ class ContractTypeListView(ParentListView):
 
 
 class ContractTypeCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ContractTypeForm
 
     def __init__(self):
@@ -33,7 +33,7 @@ class ContractTypeCreateView(ParentCreateView):
 
 
 class ContractTypeUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ContractTypeForm
 
     def __init__(self):

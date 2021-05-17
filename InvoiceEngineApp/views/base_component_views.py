@@ -18,7 +18,7 @@ class BaseComponentListView(ParentListView):
 
 
 class BaseComponentCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = BaseComponentForm
 
     def __init__(self):
@@ -33,7 +33,7 @@ class BaseComponentCreateView(ParentCreateView):
 
 
 class BaseComponentUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = BaseComponentForm
 
     def __init__(self):

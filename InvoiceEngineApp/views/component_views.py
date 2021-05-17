@@ -12,7 +12,7 @@ from InvoiceEngineApp.views.parent_views import (
 
 
 class ComponentCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ComponentForm
 
     def __init__(self):
@@ -73,7 +73,7 @@ class ComponentCreateView(ParentCreateView):
 
 class ComponentUpdateView(ParentUpdateView):
     """A component can only be updated when it has not been invoiced yet."""
-    template_name = 'InvoiceEngineApp/update.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ComponentForm
 
     def __init__(self):
@@ -128,7 +128,7 @@ class ComponentUpdateView(ParentUpdateView):
 
 class ComponentDeactivationView(ParentUpdateView):
     """A component can only be updated when it has not been invoiced yet."""
-    template_name = 'InvoiceEngineApp/update.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ComponentDeactivationForm
 
     def __init__(self):

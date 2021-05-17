@@ -1,0 +1,30 @@
+{% extends 'InvoiceEngineApp/base.html' %}
+
+{% block content %}
+    <div class="col">
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <table class="table table-borderless" style="max-width: 28%">
+                        <tbody>
+                            <form method="post">
+                                {% csrf_token %}
+                                {{ form.non_field_errors }}
+                                {% for field in form %}
+                                    <tr>
+                                        <td>{{ field.label_tag }}</td>
+                                        <td>
+                                            {{ field.errors }}
+                                            {{ field }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                <tr><td><input type="submit" value="Save"></td></tr>
+                            </form>
+                        </tbody>
+                    </table>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}

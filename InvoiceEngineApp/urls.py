@@ -129,7 +129,7 @@ urlpatterns = [
          name='contract_activate'
          ),
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/deactivate/',
-         ContractDeactivationView.as_view(),
+         contract_deactivation_view,
          name='contract_deactivate'
          ),
 

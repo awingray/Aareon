@@ -1,5 +1,3 @@
-import csv
-
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -8,7 +6,6 @@ from django.urls import reverse
 from InvoiceEngineApp.forms import (
     ContractForm,
     ContractSearchForm,
-    ContractDeactivationForm
 )
 from InvoiceEngineApp.models import Contract
 from InvoiceEngineApp.views.parent_views import (
@@ -24,14 +21,43 @@ def contract_activation_view(request, company_id, contract_id):
     """View function to set the status of the contract to ACTIVE, so
     it can be invoiced in the future.
     """
-    contract = Contract.objects.filter(
-        tenancy__tenancy_id=request.user.username,
-        tenancy_id=company_id,
-        contract_id=contract_id
+    contract = get_object_or_404(
+        Contract.objects.filter(
+            tenancy__tenancy_id=request.user.username,
+            tenancy_id=company_id,
+            contract_id=contract_id
+        )
     )
 
     if contract.can_activate():
         contract.activate()
+
+    return HttpResponseRedirect(
+        reverse(
+            "contract_details",
+            args=[
+                company_id,
+                contract_id
+            ]
+        )
+    )
+
+
+@login_required
+def contract_deactivation_view(request, company_id, contract_id):
+    """View function to set the status of the contract to ACTIVE, so
+    it can be invoiced in the future.
+    """
+    contract = get_object_or_404(
+        Contract.objects.filter(
+            tenancy__tenancy_id=request.user.username,
+            tenancy_id=company_id,
+            contract_id=contract_id
+        )
+    )
+
+    if contract.can_deactivate():
+        contract.deactivate()
 
     return HttpResponseRedirect(
         reverse(
@@ -66,7 +92,7 @@ class ContractListView(ParentListView):
 
 
 class ContractCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ContractForm
 
     def __init__(self):
@@ -123,7 +149,7 @@ class ContractDetailView(ParentListView):
 
 
 class ContractUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
+    template_name = 'InvoiceEngineApp/display_form.html'
     form_class = ContractForm
 
     def __init__(self):
@@ -175,29 +201,6 @@ class ContractDeleteView(ParentDeleteView):
         contract = get_object_or_404(qs)
 
         if not contract.can_update_or_delete():
-            raise Http404('No Contract matches the given query.')
-
-        return contract
-
-
-class ContractDeactivationView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
-    form_class = ContractDeactivationForm
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract"
-        self.list_page = "contract_list"
-
-    def get_object(self, queryset=Contract.objects.all()):
-        contract_id = self.kwargs.get('contract_id')
-        qs = queryset.filter(contract_id=contract_id)
-        qs = super().filter_by_tenancy(qs)
-        contract = get_object_or_404(qs)
-
-        if not contract.start_date \
-                or contract.can_update_or_delete() \
-                or contract.end_date:
             raise Http404('No Contract matches the given query.')
 
         return contract

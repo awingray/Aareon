@@ -1,5 +1,3 @@
-import datetime
-
 from django import forms
 from django.db.models import Func
 
@@ -96,7 +94,7 @@ class ContractForm(forms.ModelForm):
         exclude = [
             'tenancy', 'date_next_prolongation',
             'balance', 'base_amount', 'vat_amount', 'total_amount',
-            'date_prev_prolongation', 'end_date', 'start_date', 'status'
+            'date_prev_prolongation', 'status'
         ]
 
 

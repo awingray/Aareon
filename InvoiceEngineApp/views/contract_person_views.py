@@ -19,7 +19,9 @@ def contract_person_update_view(request, company_id, contract_id):
         can_delete=True
     )
 
-    queryset = ContractPerson.objects.filter(contract_id=contract_id)
+    queryset = ContractPerson.objects.filter(
+        contract_id=contract_id
+    )
 
     if request.method == 'POST':
         formset = FormSet(request.POST, request.FILES, queryset=queryset)

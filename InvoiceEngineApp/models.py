@@ -405,7 +405,7 @@ class Contract(TenancyDependentModel):
     )
 
     # Dates
-    start_date = models.DateField(null=True, default=None)
+    start_date = models.DateField(null=True, default=None, blank=True)
     end_date = models.DateField(null=True, blank=True)
     date_prev_prolongation = models.DateField(null=True, default=None)
     date_next_prolongation = models.DateField(null=True, default=None)
@@ -452,13 +452,47 @@ class Contract(TenancyDependentModel):
         self.tenancy.save(update_fields=['number_of_contracts'])
 
     def can_update_or_delete(self):
-        return self.date_prev_prolongation is None
+        return not self.is_active()
+
+    def can_activate(self):
+        """Return whether a contract can be activated for invoicing.
+        This is only possible if it has contract persons, components,
+        and a start date.
+        """
+        return (self.has_contract_persons()
+                and self.start_date
+                and self.has_components())
+
+    def activate(self):
+        """Activate a contract so that it can be invoiced."""
+        self.date_next_prolongation = self.start_date
+        self.status = Contract.ACTIVE
+        with transaction.atomic():
+            self.contractperson_set.filter(
+                start_date__lt=self.start_date
+            ).update(
+                start_date=self.start_date
+            )
+            self.component_set.filter(
+                start_date__lt=self.start_date
+            ).update(
+                start_date=self.start_date
+            )
+        self.save()
+
+    def is_active(self):
+        """Returns whether or not this contract is active for invoicing."""
+        return self.status == Contract.ACTIVE
+
+    def can_deactivate(self):
+        return self.is_active() and not self.date_prev_prolongation
 
     def deactivate(self):
-        if not self.invoice_set.exists():
-            self.status = self.DRAFT
-            return
+        self.status = Contract.DRAFT
+        self.date_next_prolongation = None
+        self.save()
 
+    def terminate(self):
         components = self.component_set.filter(
             Q(end_date__isnull=True) | Q(end_date__gt=self.end_date)
         )
@@ -565,35 +599,6 @@ class Contract(TenancyDependentModel):
             invoice_number=tenancy.last_invoice_number,
             gl_account=self.contract_type.gl_debit,
         )
-
-    def can_activate(self):
-        """Return whether a contract can be activated for invoicing.
-        This is only possible if it has contract persons, components,
-        and a start date.
-        """
-        return (self.has_contract_persons()
-                and self.start_date
-                and self.has_components())
-
-    def activate(self):
-        """Activate a contract so that it can be invoiced."""
-        self.date_next_prolongation = self.start_date
-        self.status = Contract.ACTIVE
-        with transaction.atomic():
-            self.contractperson_set.filter(
-                start_date__lt=self.start_date
-            ).update(
-                start_date=self.start_date
-            )
-            self.component_set.filter(
-                start_date__lt=self.start_date
-            ).update(
-                start_date=self.start_date
-            )
-
-    def is_active(self):
-        """Returns whether or not this contract is active for invoicing."""
-        return self.status == Contract.ACTIVE
 
 
 class Component(TenancyDependentModel):
