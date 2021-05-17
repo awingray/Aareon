@@ -36,6 +36,11 @@ class ComponentUpdateView(ParentUpdateView):
         form.filter_selectors(self.object.tenancy)
         return form
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        obj.remove_from_contract()
+        return obj
+
     def form_valid(self, form):
         """Overload the form valid function to perform additional logic in the
         form.

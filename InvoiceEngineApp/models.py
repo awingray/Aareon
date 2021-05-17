@@ -302,13 +302,14 @@ class VATRate(TenancyDependentModel):
         old_vat_rate_qs = self.tenancy.vatrate_set.filter(
             Q(type=self.type)
             & (Q(end_date__isnull=True) | Q(end_date__gte=self.start_date))
-            & Q(start_date__lt=self.start_date)
+            & Q(start_date__lte=self.start_date)
+        ).exclude(
+            Q(vat_rate_id=self.vat_rate_id)
         )
         old_vat_rate = None
         do_delete = False
         if old_vat_rate_qs.exists():
             old_vat_rate = old_vat_rate_qs.first()
-
             if old_vat_rate.can_update_or_delete():
                 do_delete = True
             else:
@@ -316,19 +317,23 @@ class VATRate(TenancyDependentModel):
                 old_vat_rate.end_date = (self.start_date - datetime.timedelta(days=1))
 
         with transaction.atomic():
-            if old_vat_rate:
-                if do_delete:
-                    old_vat_rate.delete()
-                else:
-                    old_vat_rate.save(
-                        update_fields=['successor_vat_rate', 'end_date']
-                    )
             super().save(
                 force_insert=force_insert,
                 force_update=force_update,
                 using=using,
                 update_fields=update_fields
             )
+            if old_vat_rate:
+                if do_delete:
+                    for component in old_vat_rate.component_set.all():
+                        component.remove_from_contract()
+                        component.vat_rate = self
+                        component.update()
+                    old_vat_rate.delete()
+                else:
+                    old_vat_rate.save(
+                        update_fields=['successor_vat_rate', 'end_date']
+                    )
 
     def delete(self, using=None, keep_parents=False):
         with transaction.atomic():
