@@ -166,23 +166,6 @@ class TenancyListView(ListView):
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
-class TenancyCreateView(CreateView):
-    """Allow the user to fill in a form to create a new tenancy."""
-    template_name = 'InvoiceEngineApp/display_form.html'
-    form_class = TenancyAdministratorForm
-    extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.request.user.has_perm('InvoiceEngineApp.add_tenancy'):
-            raise Http404('No Tenancy matches the given query.')
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse('tenancy_list')
-
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
 class TenancyDetailView(DetailView):
     """Show the user the details corresponding to a certain tenancy.
     This class need not check if the user has access to that tenancy, as they can only access this page for their own

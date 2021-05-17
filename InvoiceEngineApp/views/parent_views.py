@@ -15,6 +15,7 @@ from InvoiceEngineApp.models import Tenancy
 class TenancyAccessMixin(LoginRequiredMixin):
     # Redirect to the login page if the user is not logged in.
     login_url = '/login/'
+    kwargs = None
 
     def dispatch(self, request, *args, **kwargs):
         """"Perform a check whether this user has access to this tenancy."""
@@ -67,13 +68,19 @@ class ParentCreateView(TenancyAccessMixin, CreateView):
         return reverse(self.list_page, args=self.kwargs.values())
 
 
-class ParentUpdateView(LoginRequiredMixin, UpdateView):
+class ParentUpdateView(TenancyAccessMixin, UpdateView):
     """This class defines common methods of UpdateViews used
     in this project.
     """
     template_name = 'InvoiceEngineApp/display_form.html'
     list_page = None
     is_contract = False
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.can_update_or_delete():
+            return Http404("This action is not allowed.")
+        return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -92,7 +99,7 @@ class ParentUpdateView(LoginRequiredMixin, UpdateView):
         return reverse(self.list_page, args=args)
 
 
-class ParentDeleteView(LoginRequiredMixin, DeleteView):
+class ParentDeleteView(TenancyAccessMixin, DeleteView):
     """This class defines common methods of DeleteViews used
     in this project.
     """
@@ -100,6 +107,12 @@ class ParentDeleteView(LoginRequiredMixin, DeleteView):
     list_page = None
     success_page = None
     is_contract = False
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.can_update_or_delete():
+            return Http404("This action is not allowed.")
+        return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

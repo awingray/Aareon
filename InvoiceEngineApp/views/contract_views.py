@@ -16,58 +16,52 @@ from InvoiceEngineApp.views.parent_views import (
 )
 
 
-@login_required
+def get_contract(username, company_id, contract_id):
+    return get_object_or_404(
+        Contract.objects.filter(
+            tenancy__tenancy_id=username,
+            tenancy_id=company_id,
+            contract_id=contract_id
+        )
+    )
+
+
+def get_details_page(company_id, contract_id):
+    return HttpResponseRedirect(
+        reverse(
+            "contract_details",
+            args=[
+                company_id,
+                contract_id
+            ]
+        )
+    )
+
+
+@login_required(login_url='/login/')
 def contract_activation_view(request, company_id, contract_id):
     """View function to set the status of the contract to ACTIVE, so
     it can be invoiced in the future.
     """
-    contract = get_object_or_404(
-        Contract.objects.filter(
-            tenancy__tenancy_id=request.user.username,
-            tenancy_id=company_id,
-            contract_id=contract_id
-        )
-    )
+    contract = get_contract(request.user.username, company_id, contract_id)
 
     if contract.can_activate():
         contract.activate()
 
-    return HttpResponseRedirect(
-        reverse(
-            "contract_details",
-            args=[
-                company_id,
-                contract_id
-            ]
-        )
-    )
+    return get_details_page(company_id, contract_id)
 
 
-@login_required
+@login_required(login_url='/login/')
 def contract_deactivation_view(request, company_id, contract_id):
     """View function to set the status of the contract to ACTIVE, so
     it can be invoiced in the future.
     """
-    contract = get_object_or_404(
-        Contract.objects.filter(
-            tenancy__tenancy_id=request.user.username,
-            tenancy_id=company_id,
-            contract_id=contract_id
-        )
-    )
+    contract = get_contract(request.user.username, company_id, contract_id)
 
     if contract.can_deactivate():
         contract.deactivate()
 
-    return HttpResponseRedirect(
-        reverse(
-            "contract_details",
-            args=[
-                company_id,
-                contract_id
-            ]
-        )
-    )
+    return get_details_page(company_id, contract_id)
 
 
 class ContractListView(ParentListView):

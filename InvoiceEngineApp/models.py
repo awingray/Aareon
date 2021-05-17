@@ -223,7 +223,9 @@ class ContractType(TenancyDependentModel):
         """Method to determine whether the instance can be updated
         or deleted.
         """
-        return not self.contract_set.exists()
+        return not self.contract_set.filter(
+            date_prev_prolongation__isnull=False
+        ).exists()
 
 
 class BaseComponent(TenancyDependentModel):
