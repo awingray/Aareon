@@ -825,7 +825,7 @@ class Component(TenancyDependentModel):
         )
 
         # Create collections
-        persons = self.contractperson_set.filter(
+        persons = self.contract.contractperson_set.filter(
             end_date__isnull=True
         )
         for person in persons:
