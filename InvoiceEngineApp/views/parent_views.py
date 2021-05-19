@@ -78,8 +78,8 @@ class ParentUpdateView(TenancyAccessMixin, UpdateView):
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        if not obj.can_update_or_delete():
-            return Http404("This action is not allowed.")
+        if not obj.can_update():
+            raise Http404("This action is not allowed.")
         return obj
 
     def get_context_data(self, **kwargs):
@@ -95,7 +95,8 @@ class ParentUpdateView(TenancyAccessMixin, UpdateView):
     def get_success_url(self):
         args = []
         args.extend(self.kwargs.values())
-        args = args[:-1]
+        if not self.is_contract:
+            args = args[:-1]
         return reverse(self.list_page, args=args)
 
 
@@ -110,8 +111,8 @@ class ParentDeleteView(TenancyAccessMixin, DeleteView):
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        if not obj.can_update_or_delete():
-            return Http404("This action is not allowed.")
+        if not obj.can_delete():
+            raise Http404("This action is not allowed.")
         return obj
 
     def get_context_data(self, **kwargs):
@@ -128,4 +129,6 @@ class ParentDeleteView(TenancyAccessMixin, DeleteView):
         args = []
         args.extend(self.kwargs.values())
         args = args[:-1]
+        if not self.is_contract:
+            args = args[:-1]
         return reverse(self.success_page, args=args)

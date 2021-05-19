@@ -42,7 +42,7 @@
                                     </tr>
                                     <tr>
                                         <td>Status</td>
-                                        <td>{{object.status}}</td>
+                                        <td>{{object.get_status}}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -55,6 +55,10 @@
                                     <tr>
                                         <td>Start Date</td>
                                         <td>{{object.start_date}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Termination Date</td>
+                                        <td>{{object.termination_date}}</td>
                                     </tr>
                                     <tr>
                                         <td>End Date</td>
@@ -72,10 +76,6 @@
                                         <td>GL Dimension 1</td>
                                         <td>{{object.gl_dimension_1}}</td>
                                     </tr>
-                                    <tr>
-                                        <td>GL Dimension 2</td>
-                                        <td>{{object.gl_dimension_2}}</td>
-                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -84,6 +84,10 @@
                         <div class="table-responsive">
                             <table class="table">
                                 <tbody>
+                                    <tr>
+                                        <td>GL Dimension 2</td>
+                                        <td>{{object.gl_dimension_2}}</td>
+                                    </tr>
                                     <tr>
                                         <td>Balance</td>
                                         <td style="text-align: right">€{{object.balance|floatformat:2}}</td>
@@ -108,22 +112,24 @@
 
                 <div class="row">
                     <ul class="nav">
-                        {% if object.can_update_or_delete %}
+                        {% if object.can_update %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'contract_update' company_id object.contract_id %}">Update</a>
                             </li>
+                        {% endif %}
+                        {% if object.can_delete %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'contract_delete' company_id object.contract_id %}">Delete</a>
                             </li>
-                            {% if object.can_activate %}
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'contract_activate' company_id object.contract_id %}">Activate</a>
-                                </li>
-                            {% endif %}
                         {% endif %}
-                        {% if object.can_deactivate %}
+                        {% if object.can_activate %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'contract_deactivate' company_id object.contract_id %}">Deactivate</a>
+                                <a class="nav-link" href="{% url 'contract_activate' company_id object.contract_id %}">Activate</a>
+                            </li>
+                        {% endif %}
+                        {% if object.can_end %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'contract_end' company_id object.contract_id %}">End</a>
                             </li>
                         {% endif %}
                     </ul>
@@ -239,7 +245,9 @@
                                 {% endfor %}
                             </table>
                         </div>
-                        <a class="link-primary" href="{% url 'contract_person_update' company_id object.contract_id %}">Manage</a>
+                        {% if object.can_update %}
+                            <a class="link-primary" href="{% url 'contract_person_update' company_id object.contract_id %}">Manage</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

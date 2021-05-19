@@ -16,13 +16,11 @@ from InvoiceEngineApp.views.parent_views import (
 )
 
 
-def get_contract(username, company_id, contract_id):
-    return get_object_or_404(
-        Contract.objects.filter(
-            tenancy__tenancy_id=username,
-            tenancy_id=company_id,
-            contract_id=contract_id
-        )
+def get_contract_qs(username, company_id, contract_id):
+    return Contract.objects.filter(
+        tenancy__tenancy_id=username,
+        tenancy_id=company_id,
+        contract_id=contract_id
     )
 
 
@@ -43,7 +41,8 @@ def contract_activation_view(request, company_id, contract_id):
     """View function to set the status of the contract to ACTIVE, so
     it can be invoiced in the future.
     """
-    contract = get_contract(request.user.username, company_id, contract_id)
+    qs = get_contract_qs(request.user.username, company_id, contract_id)
+    contract = get_object_or_404(qs)
 
     if contract.can_activate():
         contract.activate()
@@ -52,14 +51,16 @@ def contract_activation_view(request, company_id, contract_id):
 
 
 @login_required(login_url='/login/')
-def contract_deactivation_view(request, company_id, contract_id):
+def contract_ending_view(request, company_id, contract_id):
     """View function to set the status of the contract to ACTIVE, so
     it can be invoiced in the future.
     """
-    contract = get_contract(request.user.username, company_id, contract_id)
+    qs = get_contract_qs(request.user.username, company_id, contract_id)
+    qs.select_related('tenancy')
+    contract = get_object_or_404(qs)
 
-    if contract.can_deactivate():
-        contract.deactivate()
+    if contract.can_end():
+        contract.end()
 
     return get_details_page(company_id, contract_id)
 
@@ -137,8 +138,17 @@ class ContractUpdateView(ParentUpdateView):
         tenancy.
         """
         form = super().get_form()
-        form.filter_selectors(self.object.tenancy)
+        form.filter_selectors(self.object.tenancy_id)
+        if not self.object.is_draft():
+            form.disable_fields()
         return form
+
+    def form_valid(self, form):
+        """Overload the form valid function to perform additional logic in the
+        form.
+        """
+        form.instance.update()
+        return super().form_valid(form)
 
 
 class ContractDeleteView(ParentDeleteView):

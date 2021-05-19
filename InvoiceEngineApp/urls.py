@@ -126,8 +126,8 @@ urlpatterns = [
          name='contract_activate'
          ),
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/deactivate/',
-         contract_deactivation_view,
-         name='contract_deactivate'
+         contract_ending_view,
+         name='contract_end'
          ),
 
     # Component pages.

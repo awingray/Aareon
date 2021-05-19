@@ -1,3 +1,5 @@
+import datetime
+
 from django import forms
 from django.db.models import Func
 
@@ -77,6 +79,11 @@ class ContractForm(forms.ModelForm):
                 tenancy_id=company_id
             )
 
+    def disable_fields(self):
+        for field in self.fields:
+            self.fields[field].disabled = True
+        self.fields['termination_date'].disabled = False
+
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get('invoicing_period') == self.instance.CUSTOM:
@@ -91,12 +98,19 @@ class ContractForm(forms.ModelForm):
                     "Custom invoicing period."
                 )
 
+        start_date = cleaned_data.get('start_date')
+        term_date = cleaned_data.get('termination_date')
+        if start_date and term_date and start_date > term_date:
+            raise forms.ValidationError(
+                "Termination date must be on or after start date."
+            )
+
     class Meta:
         model = models.Contract
         exclude = [
             'tenancy', 'date_next_prolongation',
             'balance', 'base_amount', 'vat_amount', 'total_amount',
-            'date_prev_prolongation', 'status'
+            'date_prev_prolongation', 'status', 'end_date'
         ]
 
 
@@ -246,6 +260,12 @@ class ComponentForm(forms.ModelForm):
                 tenancy_id=company_id
             )
 
+    def disable_fields(self):
+        for field in self.fields:
+            self.fields[field].disabled = True
+        self.fields['start_date'].disabled = False
+        self.fields['end_date'].disabled = False
+
     def clean(self):
         cleaned_data = super().clean()
         base_amount = cleaned_data.get("base_amount")
@@ -285,24 +305,45 @@ class ComponentForm(forms.ModelForm):
                 "Start date cannot be after end date."
             )
 
+        if start_date and not self.instance.contract.is_draft():
+            if start_date < self.instance.contract.start_date:
+                raise forms.ValidationError(
+                    "Start date cannot be before the contract's start date."
+                )
+
+        if end_date and self.instance.contract.is_terminated():
+            if end_date > self.instance.contract.termination_date:
+                raise forms.ValidationError(
+                    "End date cannot be after the contract's termination date."
+                )
+
     class Meta:
         model = models.Component
         exclude = [
             'contract', 'vat_amount', 'total_amount', 'tenancy',
             'date_next_prolongation', 'unit_id', 'date_prev_prolongation',
-            'end_date'
         ]
 
 
 class ContractPersonFormSet(forms.BaseModelFormSet):
-    """A form for the user to set the fields of a contract person."""
+    contract = None
+    restricted = False
+
+    def set_contract(self, contract):
+        self.contract = contract
+        if not self.contract.is_draft():
+            self.restricted = True
+
     def clean(self):
         super().clean()
-        total_percentage = 0
+        none_valid = True
+        contract_start_percentage = 0
         for form in self.forms:
-            if self._should_delete_form(form):
+            if self._should_delete_form(form) \
+                    or (form.empty_permitted and not form.has_changed()):
                 continue
 
+            none_valid = False
             cleaned_data = form.clean()
             payment_method = cleaned_data.get("payment_method")
             iban = cleaned_data.get("iban")
@@ -313,6 +354,12 @@ class ContractPersonFormSet(forms.BaseModelFormSet):
                     raise forms.ValidationError(
                         "Please provide an iban and a mandate."
                     )
+            else:
+                if iban or mandate:
+                    raise forms.ValidationError(
+                        "Only fill in IBAN & mandate in case of Direct Debit"
+                        "payment method."
+                    )
 
             start_date = cleaned_data.get("start_date")
             end_date = cleaned_data.get("end_date")
@@ -321,21 +368,87 @@ class ContractPersonFormSet(forms.BaseModelFormSet):
                     "End date should be after start date."
                 )
 
-            percentage = cleaned_data.get('percentage_of_total')
-            if percentage:
-                total_percentage += percentage
+            if end_date:
+                end_date += datetime.timedelta(days=1)
 
-        if total_percentage > 100:
+            if not start_date:
+                continue
+
+            if start_date == self.contract.start_date:
+                contract_start_percentage \
+                    += cleaned_data.get('percentage_of_total')
+
+            percentage_start = 0
+            percentage_end = 0
+            for second_form in self.forms:
+                if self._should_delete_form(second_form) \
+                        or (second_form.empty_permitted
+                            and not second_form.has_changed()) \
+                        or not second_form.instance.start_date:
+                    continue
+
+                if second_form.instance.start_date <= start_date \
+                        and (not second_form.instance.end_date
+                             or start_date <= second_form.instance.end_date):
+                    percentage_start += second_form.instance.percentage_of_total
+
+                if end_date and second_form.instance.start_date <= end_date \
+                        and (not second_form.instance.end_date
+                             or end_date <= second_form.instance.end_date):
+                    percentage_end += second_form.instance.percentage_of_total
+                elif not end_date and not second_form.instance.end_date:
+                    percentage_end += second_form.instance.percentage_of_total
+
+            if percentage_start > 100:
+                raise forms.ValidationError(
+                    'Total of all persons exceeding 100% by '
+                    + (percentage_start - 100).__str__()
+                    + '% on '
+                    + start_date.__str__()
+                )
+            elif percentage_start < 100:
+                raise forms.ValidationError(
+                    'Total of all persons smaller than 100% by '
+                    + (100 - percentage_start).__str__()
+                    + '% on '
+                    + start_date.__str__()
+                )
+
+            if percentage_end > 100:
+                raise forms.ValidationError(
+                    'Total of all persons exceeding 100% by '
+                    + (percentage_end - 100).__str__()
+                    + '% '
+                    + ("on " + end_date.__str__()
+                       if end_date else "at the end.")
+                )
+            elif percentage_end < 100:
+                raise forms.ValidationError(
+                    'Total of all persons smaller than 100% by '
+                    + (100 - percentage_end).__str__()
+                    + "% "
+                    + ("on " + end_date.__str__()
+                       if end_date else "at the end.")
+                )
+
+        if none_valid:
+            raise forms.ValidationError(
+                'Please do not delete all persons.'
+            )
+
+        if contract_start_percentage > 100:
             raise forms.ValidationError(
                 'Total of all persons exceeding 100% by '
-                + (total_percentage - 100).__str__()
-                + '%'
+                + (contract_start_percentage - 100).__str__()
+                + '% '
+                + "on " + self.contract.start_date.__str__()
             )
-        if total_percentage < 100:
+        elif contract_start_percentage < 100:
             raise forms.ValidationError(
                 'Total of all persons smaller than 100% by '
-                + (100 - total_percentage).__str__()
-                + '%'
+                + (100 - contract_start_percentage).__str__()
+                + "% "
+                + "on " + self.contract.start_date.__str__()
             )
 
 
