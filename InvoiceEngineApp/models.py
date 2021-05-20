@@ -24,10 +24,6 @@ def get_next_invoice_id():
     return next_invoice_id, next_invoice_line_id
 
 
-def foo(something):
-    return something+8
-
-
 class Tenancy(models.Model):
     """This class represents a company. Only a user with the same username as
     the tenancy_id has access to this company and all its data. Therefore,
