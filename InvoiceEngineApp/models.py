@@ -546,7 +546,9 @@ class Contract(TenancyDependentModel):
                 component.end_date = self.end_date
                 base, vat, total, unit = component.get_amounts_between_dates(
                     self.end_date,
-                    min(component.end_date, self.date_next_prolongation)
+                    min(component.end_date + datetime.timedelta(days=1),
+                        self.date_next_prolongation
+                    )
                 )
 
                 component.create_invoice_line(
@@ -680,7 +682,7 @@ class Component(TenancyDependentModel):
         VATRate, null=True, blank=True, on_delete=models.SET_NULL
     )
     description = models.CharField(max_length=50)
-    start_date = models.DateField()
+    start_date = models.DateField(null=True)
     end_date = models.DateField(null=True, blank=True)
     date_prev_prolongation = models.DateField(
         null=True, blank=True, default=None
@@ -707,13 +709,148 @@ class Component(TenancyDependentModel):
         self.unit_id = self.base_component.unit_id
         self.set_derived_fields()
 
+        invoice = None
+        line_id = None
+        new_invoice_lines = []
+        new_gl_posts = []
+        new_collections = []
+
+        if not self.is_draft():
+            self.date_next_prolongation = self.start_date
+            if self.date_next_prolongation < self.contract.date_next_prolongation:
+                invoice_id, line_id = get_next_invoice_id()
+                invoice = self.contract.create_invoice(
+                    datetime.date.today(),
+                    invoice_id,
+                    self.tenancy
+                )
+
+                base, vat, total, unit = self.get_amounts_between_dates(
+                    self.date_next_prolongation,
+                    self.contract.date_next_prolongation
+                )
+
+                self.create_invoice_line(
+                    line_id,
+                    invoice,
+                    base,
+                    vat,
+                    total,
+                    unit,
+                    new_invoice_lines,
+                    new_gl_posts
+                )
+                line_id += 1
+
+                self.date_next_prolongation = self.contract.date_next_prolongation
+
         # If there is an existing component that uses the same base component,
         # this new component will replace the old one. This is known as a
         # price change.
+        if self.end_date:
+            components = list(
+                self.contract.component_set.filter(
+                    Q(start_date__lte=self.end_date)
+                    & (Q(end_date__gte=self.start_date)
+                       | Q(end_date__isnull=True))
+                ).exclude(start_date__isnull=True)
+            )
+        else:
+            components = list(
+                self.contract.component_set.filter(
+                    Q(end_date__gte=self.start_date) | Q(end_date__isnull=True)
+                ).exclude(start_date__isnull=True)
+            )
 
+        invoiced_until = self.contract.date_next_prolongation
+        new_component = None
 
+        for c in components:
+            if self.start_date <= c.start_date \
+                    and (not self.end_date or self.end_date >= c.end_date):
+                base, vat, total, unit = c.get_amounts_between_dates(
+                    c.start_date,
+                    min(c.end_date + datetime.timedelta(days=1),
+                        invoiced_until) if c.end_date else invoiced_until,
+                    -1
+                )
+                c.start_date = None
+                c.end_date = None
+            elif self.end_date and c.end_date \
+                    and self.start_date > c.start_date \
+                    and self.end_date < c.end_date:
+                base, vat, total, unit = c.get_amounts_between_dates(
+                    self.start_date,
+                    min(self.end_date + datetime.timedelta(days=1),
+                        invoiced_until),
+                    -1
+                )
+                c.end_date = self.start_date - datetime.timedelta(days=1)
+                new_component = Component(
+                    tenancy_id=c.tenancy_id,
+                    contract_id=c.contract_id,
+                    base_component_id=c.base_component_id,
+                    vat_rate_id=c.vat_rate_id,
+                    description=c.description,
+                    start_date=self.end_date + datetime.timedelta(days=1),
+                    end_date=c.end_date,
+                    date_prev_prolongation=c.date_prev_prolongation,
+                    date_next_prolongation=c.date_next_prolongation,
+                    base_amount=c.base_amount,
+                    vat_amount=c.vat_amount,
+                    unit_id=c.unit_id,
+                    unit_amount=c.unit_amount,
+                    number_of_units=c.number_of_units
+                )
+            elif self.start_date > c.start_date:
+                base, vat, total, unit = c.get_amounts_between_dates(
+                    self.start_date,
+                    min(c.end_date + datetime.timedelta(days=1),
+                        invoiced_until) if c.end_date else invoiced_until,
+                    -1
+                )
+                c.end_date = self.start_date - datetime.timedelta(days=1)
+            else:
+                # elif self.end_date > c.start_date:
+                base, vat, total, unit = c.get_amounts_between_dates(
+                    c.start_date,
+                    min(self.end_date, invoiced_until),
+                    -1
+                )
+                c.start_date = self.end_date + datetime.timedelta(days=1)
+
+            if invoice:
+                c.create_invoice_line(
+                    line_id,
+                    invoice,
+                    base,
+                    vat,
+                    total,
+                    unit,
+                    new_invoice_lines,
+                    new_gl_posts
+                )
+                line_id += 1
+
+        if invoice:
+            for person in self.contract.contractperson_set.filter(end_date__isnull=True):
+                person.invoice(self.tenancy, invoice, new_collections)
+
+            invoice.create_gl_post(new_gl_posts)
+
+            with transaction.atomic():
+                invoice.save()
+                InvoiceLine.objects.bulk_create(new_invoice_lines)
+                GeneralLedgerPost.objects.bulk_create(new_gl_posts)
+                Collection.objects.bulk_create(new_collections)
+                for component in components:
+                    component.save(update_fields=['start_date', 'end_date'])
+                if new_component:
+                    new_component.save()
+                self.tenancy.save(update_fields=['last_invoice_number'])
 
     def get_amounts_between_dates(self, start_date, end_date):
+        # Incl start_date, excl end_date
         base_amount = 0.0
         vat_amount = 0.0
         total_amount = 0.0
@@ -721,7 +858,7 @@ class Component(TenancyDependentModel):
 
         prev_date = self.contract.start_date
         current_date = self.contract.compute_date_next_prolongation(prev_date)
-        while current_date <= start_date:
+        while current_date < start_date:
             prev_date = current_date
             current_date = self.contract.compute_date_next_prolongation(prev_date)
 
@@ -758,6 +895,7 @@ class Component(TenancyDependentModel):
         if self.vat_amount and not self.vat_rate:
             self.total_amount -= self.vat_amount
             self.vat_amount = 0
+        self.unit_id = self.base_component.unit_id
         self.set_derived_fields()
 
         with transaction.atomic():

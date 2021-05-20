@@ -54,7 +54,8 @@ class ComponentUpdateView(ParentUpdateView):
         """Overload the form valid function to perform additional logic in the
         form.
         """
-        form.instance.update()
+        if form.instance.is_draft():
+            form.instance.update()
         if form.instance.end_date != self.end_date:
             form.instance.change_end_date(self.end_date)
         if form.instance.start_date != self.start_date:
