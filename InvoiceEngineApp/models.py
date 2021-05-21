@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 from django.db import models, transaction
 from django.db.models import Q, F
@@ -64,7 +64,7 @@ class Tenancy(models.Model):
         because they will be linked to by other objects. It is not possible
         to link after entry into the database.
         """
-        date_today = datetime.date.today()
+        date_today = dt.date.today()
 
         # Load all components into memory
         # There is some inefficiency here: if for a contract
@@ -329,9 +329,11 @@ class VATRate(TenancyDependentModel):
                     component.update()
                 old_vat_rate.delete()
             else:
-                old_vat_rate.end_date = self.start_date - datetime.timedelta(days=1)
+                old_vat_rate.end_date = self.start_date - dt.timedelta(days=1)
                 old_vat_rate.successor_vat_rate = self
-                old_vat_rate.save(update_fields=['successor_vat_rate', 'end_date'])
+                old_vat_rate.save(
+                    update_fields=['successor_vat_rate', 'end_date']
+                )
 
     def delete(self, using=None, keep_parents=False):
         with transaction.atomic():
@@ -484,7 +486,8 @@ class Contract(TenancyDependentModel):
     def activate(self):
         """Activate a contract so that it can be invoiced."""
         self.date_next_prolongation = self.start_date
-        self.status = Contract.TERMINATED if self.termination_date else Contract.ACTIVE
+        self.status = (Contract.TERMINATED
+                       if self.termination_date else Contract.ACTIVE)
         with transaction.atomic():
             self.component_set.filter(
                 start_date__lt=self.start_date
@@ -512,7 +515,7 @@ class Contract(TenancyDependentModel):
             end_date__isnull=True
         )
 
-        if self.end_date == (self.date_next_prolongation - datetime.timedelta(days=1)):
+        if self.end_date == self.date_next_prolongation - dt.timedelta(days=1):
             # No need to invoice this contract in the future
             self.date_next_prolongation = None
             with transaction.atomic():
@@ -525,7 +528,7 @@ class Contract(TenancyDependentModel):
                 )
         elif self.end_date < self.date_next_prolongation:
             # Issue a correction invoice
-            date_today = datetime.date.today()
+            date_today = dt.date.today()
             invoice_id, invoice_line_id = get_next_invoice_id()
             invoice = self.create_invoice(
                 date_today,
@@ -542,9 +545,8 @@ class Contract(TenancyDependentModel):
                 component.end_date = self.end_date
                 base, vat, total, unit = component.get_amounts_between_dates(
                     self.end_date,
-                    min(component.end_date + datetime.timedelta(days=1),
-                        self.date_next_prolongation
-                    )
+                    min(component.end_date + dt.timedelta(days=1),
+                        self.date_next_prolongation)
                 )
 
                 component.create_invoice_line(
@@ -617,7 +619,7 @@ class Contract(TenancyDependentModel):
         elif self.invoicing_period == self.YEAR:
             year += 1
         elif self.invoicing_period == self.CUSTOM:
-            return previous_date + datetime.timedelta(
+            return previous_date + dt.timedelta(
                 days=self.invoicing_amount_of_days
             )
 
@@ -635,7 +637,7 @@ class Contract(TenancyDependentModel):
             # Correct for months that have 30 days
             day = 30
 
-        return datetime.date(year, month, day)
+        return dt.date(year, month, day)
 
     def invoice(self, date_today, next_id, tenancy):
         self.date_prev_prolongation = self.date_next_prolongation
@@ -659,7 +661,7 @@ class Contract(TenancyDependentModel):
             external_customer_id=self.external_customer_id,
             description="Invoice: " + date_today.__str__(),
             date=date_today,
-            expiration_date=date_today + datetime.timedelta(
+            expiration_date=date_today + dt.timedelta(
                 days=tenancy.days_until_invoice_expiration
             ),
             invoice_number=tenancy.last_invoice_number,
@@ -713,10 +715,11 @@ class Component(TenancyDependentModel):
 
         if not self.is_draft():
             self.date_next_prolongation = self.start_date
-            if self.date_next_prolongation < self.contract.date_next_prolongation:
+            if (self.date_next_prolongation
+                    < self.contract.date_next_prolongation):
                 invoice_id, line_id = get_next_invoice_id()
                 invoice = self.contract.create_invoice(
-                    datetime.date.today(),
+                    dt.date.today(),
                     invoice_id,
                     self.tenancy
                 )
@@ -738,7 +741,8 @@ class Component(TenancyDependentModel):
                 )
                 line_id += 1
 
-                self.date_next_prolongation = self.contract.date_next_prolongation
+                self.date_next_prolongation = \
+                    self.contract.date_next_prolongation
 
         # If there is an existing component that uses the same base component,
         # this new component will replace the old one. This is known as a
@@ -766,7 +770,7 @@ class Component(TenancyDependentModel):
                     and (not self.end_date or self.end_date >= c.end_date):
                 base, vat, total, unit = c.get_amounts_between_dates(
                     c.start_date,
-                    min(c.end_date + datetime.timedelta(days=1),
+                    min(c.end_date + dt.timedelta(days=1),
                         invoiced_until) if c.end_date else invoiced_until,
                     -1
                 )
@@ -777,18 +781,18 @@ class Component(TenancyDependentModel):
                     and self.end_date < c.end_date:
                 base, vat, total, unit = c.get_amounts_between_dates(
                     self.start_date,
-                    min(self.end_date + datetime.timedelta(days=1),
+                    min(self.end_date + dt.timedelta(days=1),
                         invoiced_until),
                     -1
                 )
-                c.end_date = self.start_date - datetime.timedelta(days=1)
+                c.end_date = self.start_date - dt.timedelta(days=1)
                 new_component = Component(
                     tenancy_id=c.tenancy_id,
                     contract_id=c.contract_id,
                     base_component_id=c.base_component_id,
                     vat_rate_id=c.vat_rate_id,
                     description=c.description,
-                    start_date=self.end_date + datetime.timedelta(days=1),
+                    start_date=self.end_date + dt.timedelta(days=1),
                     end_date=c.end_date,
                     date_prev_prolongation=c.date_prev_prolongation,
                     date_next_prolongation=c.date_next_prolongation,
@@ -801,11 +805,11 @@ class Component(TenancyDependentModel):
             elif self.start_date > c.start_date:
                 base, vat, total, unit = c.get_amounts_between_dates(
                     self.start_date,
-                    min(c.end_date + datetime.timedelta(days=1),
+                    min(c.end_date + dt.timedelta(days=1),
                         invoiced_until) if c.end_date else invoiced_until,
                     -1
                 )
-                c.end_date = self.start_date - datetime.timedelta(days=1)
+                c.end_date = self.start_date - dt.timedelta(days=1)
             else:
                 # elif self.end_date > c.start_date:
                 base, vat, total, unit = c.get_amounts_between_dates(
@@ -813,7 +817,7 @@ class Component(TenancyDependentModel):
                     min(self.end_date, invoiced_until),
                     -1
                 )
-                c.start_date = self.end_date + datetime.timedelta(days=1)
+                c.start_date = self.end_date + dt.timedelta(days=1)
 
             if invoice:
                 c.create_invoice_line(
@@ -829,7 +833,10 @@ class Component(TenancyDependentModel):
                 line_id += 1
 
         if invoice:
-            for person in self.contract.contractperson_set.filter(end_date__isnull=True):
+            persons = self.contract.contractperson_set.filter(
+                end_date__isnull=True
+            )
+            for person in persons:
                 person.invoice(self.tenancy, invoice, new_collections)
 
             invoice.create_gl_post(new_gl_posts)
@@ -937,7 +944,7 @@ class Component(TenancyDependentModel):
     def create_correction_invoice(self, start_date, end_date, factor):
         invoice_id, invoice_line_id = get_next_invoice_id()
         invoice = self.contract.create_invoice(
-            datetime.date.today(),
+            dt.date.today(),
             invoice_id,
             self.tenancy
         )
@@ -1064,7 +1071,7 @@ class Component(TenancyDependentModel):
 
         # Determine number of days in the normal(!) to-invoice period
         start_date_period = self.contract.date_prev_prolongation  # 'today'
-        end_date_period = self.contract.date_next_prolongation - datetime.timedelta(days=1)
+        end_date_period = self.contract.date_next_prolongation - dt.timedelta(days=1)
         days_period = (end_date_period - start_date_period).days
 
         # Determine whether the component is ending in the to-invoice period

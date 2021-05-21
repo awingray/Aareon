@@ -305,17 +305,20 @@ class ComponentForm(forms.ModelForm):
                 "Start date cannot be after end date."
             )
 
-        if start_date and not self.instance.contract.is_draft():
-            if start_date < self.instance.contract.start_date:
-                raise forms.ValidationError(
-                    "Start date cannot be before the contract's start date."
-                )
+        if self.instance.contract_id is not None:
+            if start_date and not self.instance.contract.is_draft():
+                if start_date < self.instance.contract.start_date:
+                    raise forms.ValidationError(
+                        "Start date cannot be before the contract's" 
+                        "start date."
+                    )
 
-        if end_date and self.instance.contract.is_terminated():
-            if end_date > self.instance.contract.termination_date:
-                raise forms.ValidationError(
-                    "End date cannot be after the contract's termination date."
-                )
+            if end_date and self.instance.contract.is_terminated():
+                if end_date > self.instance.contract.termination_date:
+                    raise forms.ValidationError(
+                        "End date cannot be after the contract's" 
+                        "termination date."
+                    )
 
     class Meta:
         model = models.Component
