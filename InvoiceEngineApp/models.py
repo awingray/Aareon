@@ -8,12 +8,18 @@ from django.db.models import Q, F
 TWO_PLACES = dc.Decimal('.01')
 
 
-def mul(x, y):
+def mul_f(x, y):
     """Function for multiplying a Decimal object with a float."""
     return (x * dc.Decimal(y)).quantize(TWO_PLACES)
 
 
+def mul_d(x, y):
+    """Function for multiplying a Decimal with an integer or a decimal."""
+    return (x * y).quantize(TWO_PLACES)
+
+
 def div(x, y):
+    """Function for dividing a Decimal by an integer or a Decimal."""
     return (x / y).quantize(TWO_PLACES)
 
 
@@ -890,11 +896,15 @@ class Component(TenancyDependentModel):
                 self.tenancy.save(update_fields=['last_invoice_number'])
 
     def get_amounts_between_dates(self, start_date, end_date):
-        # Incl start_date, excl end_date
-        base_amount = 0
+        """Method that calculates the exact amount that should be paid for
+        this component between two dates (including start_date, excluding
+        end_date) that are not necessarily in the same period. This method
+        uses the amount of days in the period and the amount of days that
+        should be invoiced in the period to get the appropriate amount.
+        """
         vat_amount = 0
-        total_amount = 0
-        unit_amount = 0
+        am = 0
+        am_type = self.base_amount if self.base_amount else self.unit_amount
 
         prev_date = self.contract.start_date
         current_date = self.contract.compute_date_next_prolongation(prev_date)
@@ -904,36 +914,33 @@ class Component(TenancyDependentModel):
 
         period_days = (current_date - prev_date).days
         invoicing_days = (current_date - start_date).days
-        if self.base_amount:
-            base_amount += mul(self.base_amount, invoicing_days / period_days)
-        vat_amount += mul(self.vat_amount, invoicing_days / period_days)
-        total_amount += mul(self.total_amount, invoicing_days / period_days)
-        if self.unit_amount:
-            unit_amount += mul(self.unit_amount, invoicing_days / period_days)
+        am += mul_f(am_type, invoicing_days / period_days)
+        vat_amount += mul_f(self.vat_amount, invoicing_days / period_days)
 
         prev_date = current_date
         current_date = self.contract.compute_date_next_prolongation(prev_date)
 
         # current_date > start_date
         while current_date <= end_date:
-            if self.base_amount:
-                base_amount += self.base_amount
+            am += am_type
             vat_amount += self.vat_amount
-            total_amount += self.total_amount
-            if self.unit_amount:
-                unit_amount += self.unit_amount
 
             prev_date = current_date
             current_date = self.contract.compute_date_next_prolongation(prev_date)
 
         period_days = (current_date - prev_date).days
         invoicing_days = (end_date - prev_date).days
+        am += mul_f(am_type, invoicing_days / period_days)
+        vat_amount += mul_f(self.vat_amount, invoicing_days / period_days)
+
         if self.base_amount:
-            base_amount += mul(self.base_amount, invoicing_days / period_days)
-        vat_amount += mul(self.vat_amount, invoicing_days / period_days)
-        total_amount += mul(self.total_amount, invoicing_days / period_days)
-        if self.unit_amount:
-            unit_amount += mul(self.unit_amount, invoicing_days / period_days)
+            base_amount = am
+            unit_amount = 0
+            total_amount = am + vat_amount
+        else:
+            base_amount = 0
+            unit_amount = am
+            total_amount = mul_d(unit_amount, self.number_of_units) + vat_amount
 
         return base_amount, vat_amount, total_amount, unit_amount
 
@@ -954,10 +961,10 @@ class Component(TenancyDependentModel):
     def set_derived_fields(self):
         amount = self.base_amount
         if not amount:
-            amount = self.number_of_units * self.unit_amount
+            amount = mul_d(self.number_of_units, self.unit_amount)
 
         if self.vat_rate:
-            self.vat_amount = round(amount * self.vat_rate.percentage/100, 2)
+            self.vat_amount = mul_d(div(self.vat_rate.percentage, 100), amount)
 
         self.total_amount = amount + self.vat_amount
 
@@ -1135,7 +1142,7 @@ class Component(TenancyDependentModel):
             if self.vat_rate.successor_vat_rate.percentage != self.vat_rate.percentage:
                 self.vat_rate = self.vat_rate.successor_vat_rate
                 total_amount -= vat_amount
-                vat_amount = round(total_amount * self.vat_rate.percentage, 2)
+                vat_amount = mul_d(total_amount, div(self.vat_rate.percentage, 100))
                 total_amount += vat_amount
 
                 contract.total_amount -= self.vat_amount
@@ -1150,12 +1157,13 @@ class Component(TenancyDependentModel):
                 self.vat_rate = self.vat_rate.successor_vat_rate
 
         if not days_period == days_invoicing:
+            vat_amount = mul_f(vat_amount, days_invoicing / days_period)
             if base_amount:
-                base_amount = round(base_amount / days_period * days_invoicing, 2)
+                base_amount = mul_f(base_amount, days_invoicing / days_period)
+                total_amount = base_amount + vat_amount
             if unit_amount:
-                unit_amount = round(unit_amount / days_period * days_invoicing, 2)
-            vat_amount = round(vat_amount / days_period * days_invoicing, 2)
-            total_amount = round(total_amount / days_period * days_invoicing, 2)
+                unit_amount = mul_f(unit_amount, days_invoicing / days_period)
+                total_amount = mul_d(unit_amount, self.number_of_units) + vat_amount
 
         if is_ending:
             contract.remove_component(self)
