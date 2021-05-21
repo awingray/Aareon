@@ -48,6 +48,7 @@ class ComponentUpdateView(ParentUpdateView):
         obj = super().get_object(queryset)
         obj.remove_from_contract()
         self.end_date = obj.end_date
+        self.start_date = obj.start_date
         return obj
 
     def form_valid(self, form):

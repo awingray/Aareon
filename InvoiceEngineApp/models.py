@@ -1,7 +1,20 @@
 import datetime as dt
+import decimal as dc
 
 from django.db import models, transaction
 from django.db.models import Q, F
+
+
+TWO_PLACES = dc.Decimal('.01')
+
+
+def mul(x, y):
+    """Function for multiplying a Decimal object with a float."""
+    return (x * dc.Decimal(y)).quantize(TWO_PLACES)
+
+
+def div(x, y):
+    return (x / y).quantize(TWO_PLACES)
 
 
 def get_next_invoice_id():
@@ -17,6 +30,8 @@ def get_next_invoice_id():
         next_invoice_id = Invoice.objects.aggregate(
             models.Max('invoice_id')
         ).get('invoice_id__max') + 1
+
+    if InvoiceLine.objects.exists():
         next_invoice_line_id = InvoiceLine.objects.aggregate(
             models.Max('invoice_line_id')
         ).get('invoice_line_id__max') + 1
@@ -79,7 +94,9 @@ class Tenancy(models.Model):
             ).order_by(
                 'contract_id'
             ).select_related(
-                'contract__contract_type', 'vat_rate', 'base_component'
+                'contract__contract_type',
+                'vat_rate__successor_vat_rate',
+                'base_component'
             )
         )
 
@@ -90,7 +107,8 @@ class Tenancy(models.Model):
         # Load all contract persons into memory
         contract_persons = list(
             self.contractperson_set.filter(
-                end_date__isnull=True
+                Q(start_date__lte=date_today)
+                & (Q(end_date__gte=date_today) | Q(end_date__isnull=True))
             ).order_by('contract_id')
         )
 
@@ -283,7 +301,7 @@ class VATRate(TenancyDependentModel):
     description = models.CharField(max_length=30)
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True, default=None)
-    percentage = models.FloatField()
+    percentage = models.DecimalField(max_digits=5, decimal_places=2)
     gl_account = models.CharField(max_length=10)
     gl_dimension = models.CharField(max_length=10)
 
@@ -408,10 +426,10 @@ class Contract(TenancyDependentModel):
     gl_dimension_2 = models.CharField(max_length=10)
 
     # Accumulated fields
-    balance = models.FloatField(default=0.0)
-    base_amount = models.FloatField(default=0.0)
-    vat_amount = models.FloatField(default=0.0)
-    total_amount = models.FloatField(default=0.0)
+    balance = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    base_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    vat_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
 
     def __str__(self):
         return self.contract_type.description
@@ -506,13 +524,15 @@ class Contract(TenancyDependentModel):
         return self.status == Contract.TERMINATED
 
     def end(self):
+        date_today = dt.date.today()
         self.end_date = self.termination_date
         self.status = Contract.ENDED
         components = self.component_set.filter(
             Q(end_date__isnull=True) | Q(end_date__gt=self.end_date)
         )
         persons = self.contractperson_set.filter(
-            end_date__isnull=True
+            Q(start_date__lte=date_today)
+            & (Q(end_date__gte=date_today) | Q(end_date__isnull=True))
         )
 
         if self.end_date == self.date_next_prolongation - dt.timedelta(days=1):
@@ -528,7 +548,6 @@ class Contract(TenancyDependentModel):
                 )
         elif self.end_date < self.date_next_prolongation:
             # Issue a correction invoice
-            date_today = dt.date.today()
             invoice_id, invoice_line_id = get_next_invoice_id()
             invoice = self.create_invoice(
                 date_today,
@@ -602,6 +621,11 @@ class Contract(TenancyDependentModel):
 
     def is_historic(self):
         return self.status == Contract.HISTORIC
+
+    def remove_component(self, component):
+        self.total_amount -= component.total_amount
+        self.vat_amount -= component.vat_amount
+        self.base_amount -= (component.total_amount - component.vat_amount)
 
     def compute_date_next_prolongation(self, previous_date):
         """Based on the invoicing period and the date of the last invoice,
@@ -686,12 +710,12 @@ class Component(TenancyDependentModel):
         null=True, blank=True, default=None
     )
     date_next_prolongation = models.DateField(null=True, default=None)
-    base_amount = models.FloatField(null=True, blank=True)
-    vat_amount = models.FloatField(default=0.0)
-    total_amount = models.FloatField(default=0.0)
+    base_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    vat_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     unit_id = models.CharField(max_length=10, null=True, blank=True)
-    unit_amount = models.FloatField(null=True, blank=True)
-    number_of_units = models.FloatField(null=True, blank=True)
+    unit_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    number_of_units = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
         return self.description
@@ -712,6 +736,7 @@ class Component(TenancyDependentModel):
         new_invoice_lines = []
         new_gl_posts = []
         new_collections = []
+        date_today = dt.date.today()
 
         if not self.is_draft():
             self.date_next_prolongation = self.start_date
@@ -719,7 +744,7 @@ class Component(TenancyDependentModel):
                     < self.contract.date_next_prolongation):
                 invoice_id, line_id = get_next_invoice_id()
                 invoice = self.contract.create_invoice(
-                    dt.date.today(),
+                    date_today,
                     invoice_id,
                     self.tenancy
                 )
@@ -750,16 +775,25 @@ class Component(TenancyDependentModel):
         if self.end_date:
             components = list(
                 self.contract.component_set.filter(
-                    Q(start_date__lte=self.end_date)
+                    Q(base_component_id=self.base_component_id)
+                    & Q(start_date__lte=self.end_date)
                     & (Q(end_date__gte=self.start_date)
                        | Q(end_date__isnull=True))
-                ).exclude(start_date__isnull=True)
+                ).exclude(
+                    start_date__isnull=True,
+                    contract_id=self.contract_id
+                )
             )
         else:
             components = list(
                 self.contract.component_set.filter(
-                    Q(end_date__gte=self.start_date) | Q(end_date__isnull=True)
-                ).exclude(start_date__isnull=True)
+                    Q(base_component_id=self.base_component_id)
+                    & (Q(end_date__gte=self.start_date)
+                       | Q(end_date__isnull=True))
+                ).exclude(
+                    start_date__isnull=True,
+                    contract_id=self.contract_id
+                )
             )
 
         invoiced_until = self.contract.date_next_prolongation
@@ -834,14 +868,17 @@ class Component(TenancyDependentModel):
 
         if invoice:
             persons = self.contract.contractperson_set.filter(
-                end_date__isnull=True
+                Q(start_date__lte=date_today)
+                & (Q(end_date__gte=date_today) | Q(end_date__isnull=True))
             )
             for person in persons:
                 person.invoice(self.tenancy, invoice, new_collections)
 
             invoice.create_gl_post(new_gl_posts)
 
-            with transaction.atomic():
+        with transaction.atomic():
+            self.contract.save()
+            if invoice:
                 invoice.save()
                 InvoiceLine.objects.bulk_create(new_invoice_lines)
                 GeneralLedgerPost.objects.bulk_create(new_gl_posts)
@@ -854,10 +891,10 @@ class Component(TenancyDependentModel):
 
     def get_amounts_between_dates(self, start_date, end_date):
         # Incl start_date, excl end_date
-        base_amount = 0.0
-        vat_amount = 0.0
-        total_amount = 0.0
-        unit_amount = 0.0
+        base_amount = 0
+        vat_amount = 0
+        total_amount = 0
+        unit_amount = 0
 
         prev_date = self.contract.start_date
         current_date = self.contract.compute_date_next_prolongation(prev_date)
@@ -867,27 +904,36 @@ class Component(TenancyDependentModel):
 
         period_days = (current_date - prev_date).days
         invoicing_days = (current_date - start_date).days
-        base_amount += self.base_amount / period_days * invoicing_days
-        vat_amount += self.vat_amount / period_days * invoicing_days
-        total_amount += self.total_amount / period_days * invoicing_days
-        unit_amount += self.unit_amount / period_days * invoicing_days
+        if self.base_amount:
+            base_amount += mul(self.base_amount, invoicing_days / period_days)
+        vat_amount += mul(self.vat_amount, invoicing_days / period_days)
+        total_amount += mul(self.total_amount, invoicing_days / period_days)
+        if self.unit_amount:
+            unit_amount += mul(self.unit_amount, invoicing_days / period_days)
+
+        prev_date = current_date
+        current_date = self.contract.compute_date_next_prolongation(prev_date)
 
         # current_date > start_date
         while current_date <= end_date:
-            base_amount += self.base_amount
+            if self.base_amount:
+                base_amount += self.base_amount
             vat_amount += self.vat_amount
             total_amount += self.total_amount
-            unit_amount += self.unit_amount
+            if self.unit_amount:
+                unit_amount += self.unit_amount
 
             prev_date = current_date
             current_date = self.contract.compute_date_next_prolongation(prev_date)
 
         period_days = (current_date - prev_date).days
         invoicing_days = (end_date - prev_date).days
-        base_amount += self.base_amount / period_days * invoicing_days
-        vat_amount += self.vat_amount / period_days * invoicing_days
-        total_amount += self.total_amount / period_days * invoicing_days
-        unit_amount += self.unit_amount / period_days * invoicing_days
+        if self.base_amount:
+            base_amount += mul(self.base_amount, invoicing_days / period_days)
+        vat_amount += mul(self.vat_amount, invoicing_days / period_days)
+        total_amount += mul(self.total_amount, invoicing_days / period_days)
+        if self.unit_amount:
+            unit_amount += mul(self.unit_amount, invoicing_days / period_days)
 
         return base_amount, vat_amount, total_amount, unit_amount
 
@@ -911,7 +957,7 @@ class Component(TenancyDependentModel):
             amount = self.number_of_units * self.unit_amount
 
         if self.vat_rate:
-            self.vat_amount = amount * self.vat_rate.percentage/100
+            self.vat_amount = round(amount * self.vat_rate.percentage/100, 2)
 
         self.total_amount = amount + self.vat_amount
 
@@ -942,9 +988,10 @@ class Component(TenancyDependentModel):
         return self.contract.is_draft()
 
     def create_correction_invoice(self, start_date, end_date, factor):
+        date_today = dt.date.today()
         invoice_id, invoice_line_id = get_next_invoice_id()
         invoice = self.contract.create_invoice(
-            dt.date.today(),
+            date_today,
             invoice_id,
             self.tenancy
         )
@@ -967,7 +1014,8 @@ class Component(TenancyDependentModel):
 
         # Create collections
         persons = self.contract.contractperson_set.filter(
-            end_date__isnull=True
+            Q(start_date__lte=date_today)
+            & (Q(end_date__gte=date_today) | Q(end_date__isnull=True))
         )
         for person in persons:
             person.invoice(self.tenancy, invoice, new_collections)
@@ -1038,8 +1086,8 @@ class Component(TenancyDependentModel):
 
             gl_account=self.base_component.gl_credit,
             gl_dimension_base_component=self.base_component.gl_dimension,
-            gl_dimension_contract_1=self.contract.gl_dimension_1,
-            gl_dimension_contract_2=self.contract.gl_dimension_2,
+            gl_dimension_contract_1=invoice.contract.gl_dimension_1,
+            gl_dimension_contract_2=invoice.contract.gl_dimension_2,
             gl_dimension_vat=self.vat_rate.gl_dimension if self.vat_rate else None,
 
             number_of_units=self.number_of_units,
@@ -1052,16 +1100,16 @@ class Component(TenancyDependentModel):
         invoice.vat_amount += vat_amount
         invoice.total_amount += total_amount
         invoice.balance += total_amount
-        self.contract.balance += total_amount
+        invoice.contract.balance += total_amount
 
         # Create gl posts (one if no VAT, otherwise two)
         invoice_line.create_gl_posts(new_gl_posts)
         new_invoice_lines.append(invoice_line)
 
     def invoice(self, next_id, invoice, new_invoice_lines, new_gl_posts):
-        if (self.contract.date_next_prolongation
-                and self.date_next_prolongation
-                >= self.contract.date_next_prolongation):
+        contract = invoice.contract
+        if (contract.date_next_prolongation
+                and self.date_next_prolongation >= contract.date_next_prolongation):
             return
 
         base_amount = self.base_amount
@@ -1070,9 +1118,9 @@ class Component(TenancyDependentModel):
         vat_amount = self.vat_amount
 
         # Determine number of days in the normal(!) to-invoice period
-        start_date_period = self.contract.date_prev_prolongation  # 'today'
-        end_date_period = self.contract.date_next_prolongation - dt.timedelta(days=1)
-        days_period = (end_date_period - start_date_period).days
+        start_date_period = contract.date_prev_prolongation  # 'today'
+        end_date_period = contract.date_next_prolongation - dt.timedelta(days=1)
+        days_period = (end_date_period - start_date_period).days + 1
 
         # Determine whether the component is ending in the to-invoice period
         is_ending = self.end_date and self.end_date < end_date_period
@@ -1080,38 +1128,40 @@ class Component(TenancyDependentModel):
         # Determine number of days in the actual(!) to-invoice period
         start_date_invoicing = self.date_next_prolongation
         end_date_invoicing = self.end_date if is_ending else end_date_period
-        days_invoicing = (end_date_invoicing - start_date_invoicing).days
+        days_invoicing = (end_date_invoicing - start_date_invoicing).days + 1
 
         # Check if the VAT is different for this period
-        if self.vat_rate.end_date and self.vat_rate.end_date < start_date_invoicing:
+        if self.vat_rate and self.vat_rate.end_date and self.vat_rate.end_date < start_date_invoicing:
             if self.vat_rate.successor_vat_rate.percentage != self.vat_rate.percentage:
                 self.vat_rate = self.vat_rate.successor_vat_rate
                 total_amount -= vat_amount
-                vat_amount = total_amount * self.vat_rate.percentage
+                vat_amount = round(total_amount * self.vat_rate.percentage, 2)
                 total_amount += vat_amount
 
-                self.contract.total_amount -= self.vat_amount
-                self.contract.vat_amount -= self.vat_amount
+                contract.total_amount -= self.vat_amount
+                contract.vat_amount -= self.vat_amount
 
                 self.vat_amount = vat_amount
                 self.total_amount = total_amount
 
-                self.contract.total_amount += self.vat_amount
-                self.contract.vat_amount += self.vat_amount
+                contract.total_amount += self.vat_amount
+                contract.vat_amount += self.vat_amount
             else:
                 self.vat_rate = self.vat_rate.successor_vat_rate
 
         if not days_period == days_invoicing:
-            base_amount = base_amount / days_period * days_invoicing
-            unit_amount = unit_amount / days_period * days_invoicing
-            vat_amount = vat_amount / days_period * days_invoicing
-            total_amount = total_amount / days_period * days_invoicing
+            if base_amount:
+                base_amount = round(base_amount / days_period * days_invoicing, 2)
+            if unit_amount:
+                unit_amount = round(unit_amount / days_period * days_invoicing, 2)
+            vat_amount = round(vat_amount / days_period * days_invoicing, 2)
+            total_amount = round(total_amount / days_period * days_invoicing, 2)
 
         if is_ending:
-            self.remove_from_contract()
+            contract.remove_component(self)
             self.date_next_prolongation = None
         else:
-            self.date_next_prolongation = self.contract.date_next_prolongation
+            self.date_next_prolongation = contract.date_next_prolongation
 
         self.create_invoice_line(
             next_id, invoice, base_amount, vat_amount,
@@ -1153,7 +1203,7 @@ class ContractPerson(TenancyDependentModel):
     mandate = models.PositiveIntegerField(null=True, blank=True, default=None)
     email = models.EmailField(null=True, default=None)
     phone = models.CharField(max_length=15, null=True, default=None)
-    percentage_of_total = models.PositiveIntegerField(default=0.0)
+    percentage_of_total = models.DecimalField(max_digits=5, decimal_places=2)
     payment_day = models.PositiveIntegerField(null=True, default=None)
 
     def __str__(self):
@@ -1184,10 +1234,10 @@ class Invoice(TenancyDependentModel):
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
     external_customer_id = models.PositiveIntegerField()
     description = models.CharField(max_length=50)
-    base_amount = models.FloatField(default=0.0)
-    vat_amount = models.FloatField(default=0.0)
-    total_amount = models.FloatField(default=0.0)
-    balance = models.FloatField(default=0.0)
+    base_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    vat_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     date = models.DateField()
     expiration_date = models.DateField()
     invoice_number = models.PositiveIntegerField()
@@ -1195,6 +1245,9 @@ class Invoice(TenancyDependentModel):
 
     def get_invoice_lines(self):
         return self.invoiceline_set.all()
+
+    def get_collections(self):
+        return self.collection_set.select_related('contract_person')
 
     def create_gl_post(self, new_gl_posts):
         new_gl_posts.append(
@@ -1221,17 +1274,17 @@ class InvoiceLine(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     description = models.CharField(max_length=50)
     vat_type = models.PositiveIntegerField(null=True)
-    base_amount = models.FloatField(null=True)
-    vat_amount = models.FloatField(default=0.0)
-    total_amount = models.FloatField(default=0.0)
+    base_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True)
+    vat_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     gl_account = models.CharField(max_length=10)
     gl_dimension_base_component = models.CharField(max_length=10)
     gl_dimension_contract_1 = models.CharField(max_length=10)
     gl_dimension_contract_2 = models.CharField(max_length=10)
     gl_dimension_vat = models.CharField(max_length=10, null=True)
-    unit_price = models.FloatField(null=True)
+    unit_price = models.DecimalField(max_digits=15, decimal_places=2, null=True)
     unit_id = models.CharField(max_length=10, null=True)
-    number_of_units = models.FloatField(null=True)
+    number_of_units = models.DecimalField(max_digits=15, decimal_places=2, null=True)
 
     def create_gl_posts(self, new_gl_posts):
         total_without_vat = self.total_amount - self.vat_amount
@@ -1283,7 +1336,7 @@ class Collection(TenancyDependentModel):
     payment_day = models.PositiveIntegerField()
     mandate = models.PositiveIntegerField(null=True)
     iban = models.CharField(max_length=17, null=True)
-    amount = models.FloatField(default=0.0)
+    amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
 
     def get_values_external_file(self):
         return [
@@ -1316,5 +1369,5 @@ class GeneralLedgerPost(TenancyDependentModel):
     gl_dimension_contract_2 = models.CharField(max_length=10)
     gl_dimension_vat = models.CharField(null=True, max_length=10)
     description = models.CharField(max_length=30)
-    amount_debit = models.FloatField()
-    amount_credit = models.FloatField()
+    amount_debit = models.DecimalField(max_digits=15, decimal_places=2)
+    amount_credit = models.DecimalField(max_digits=15, decimal_places=2)

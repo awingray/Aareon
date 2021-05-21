@@ -74,8 +74,8 @@
                                                     <td>{{ object.start_date }}</td>
                                                     <td>{{ object.end_date }}</td>
                                                     <td>{{ object.date_next_prolongation }}</td>
-                                                    <td style="text-align: right">€{{ object.total_amount|floatformat:2 }}</td>
-                                                    <td style="text-align: right">€{{ object.balance|floatformat:2 }}</td>
+                                                    <td style="text-align: right">€{{ object.total_amount }}</td>
+                                                    <td style="text-align: right">€{{ object.balance }}</td>
                                                 {% endif %}
                                                 {% if forloop.last %}
                                                     {% if not forloop.first %}
@@ -99,8 +99,8 @@
                                                 <td>{{ object.start_date }}</td>
                                                 <td>{{ object.end_date }}</td>
                                                 <td>{{ object.date_next_prolongation }}</td>
-                                                <td style="text-align: right">€{{ object.total_amount|floatformat:2 }}</td>
-                                                <td style="text-align: right">€{{ object.balance|floatformat:2 }}</td>
+                                                <td style="text-align: right">€{{ object.total_amount }}</td>
+                                                <td style="text-align: right">€{{ object.balance }}</td>
                                                 <td style="text-align: center"><a class="link-primary" href="{% url 'contract_details' company_id object.contract_id %}">Details</a></td>
                                             </tr>
                                         {% endfor %}

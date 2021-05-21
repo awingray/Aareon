@@ -8,7 +8,10 @@ from InvoiceEngineApp.models import (
     Contract,
     Component,
     Invoice,
-    ContractPerson
+    ContractPerson,
+    InvoiceLine,
+    Collection,
+    GeneralLedgerPost
 )
 
 
@@ -175,6 +178,19 @@ def clear_invoices():
     print("started clearing invoices at " + datetime.datetime.now().__str__())
     Invoice.objects.all().delete()
     print("ended clearing invoices at " + datetime.datetime.now().__str__())
+
+
+def clear_contracts_and_invoices():
+    print("started clearing at " + datetime.datetime.now().__str__())
+    GeneralLedgerPost.objects.all().delete()
+    InvoiceLine.objects.all().delete()
+    Collection.objects.all().delete()
+    Invoice.objects.all().delete()
+    Component.objects.all().delete()
+    ContractPerson.objects.all().delete()
+    Contract.objects.all().delete()
+    Tenancy.objects.all().update(last_invoice_number=0, number_of_contracts=0)
+    print("ended clearing at " + datetime.datetime.now().__str__())
 
 
 def run_invoice_engine():

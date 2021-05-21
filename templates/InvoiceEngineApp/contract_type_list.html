@@ -21,7 +21,7 @@
                                 {% if forloop.first %}
                                     <thead>
                                         <tr class="border-bottom">
-                                            <td><p style="font-size: 20px">Code</p></td>
+                                            <td><p style="font-size: 20px; text-align: right">Code</p></td>
                                             <td><p style="font-size: 20px">Description</p></td>
                                             <td><p style="font-size: 20px">General ledger debit</p></td>
                                             <td><p style="font-size: 20px">General ledger credit</p></td>
@@ -31,7 +31,7 @@
                                 {% endif %}
                                 <tbody>
                                     <tr>
-                                        <td>{{ object.code }}</td>
+                                        <td style="text-align: right">{{ object.code }}</td>
                                         <td>{{ object.description }}</td>
                                         <td>{{ object.gl_debit }}</td>
                                         <td>{{ object.gl_credit }}</td>

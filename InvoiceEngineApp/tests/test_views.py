@@ -1,7 +1,7 @@
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import User
 from django.test import RequestFactory, TestCase
 
-from .views.general_views import UserProfilePage
+from InvoiceEngineApp.views.general_views import UserProfilePage
 
 
 class ProfileTest(TestCase):

@@ -15,11 +15,11 @@
                         <table class="table table-borderless">
                             <thead>
                                 <tr class="border-bottom">
-                                    <td><p style="font-size: 20px">Invoice Number</p></td>
+                                    <td style="text-align: right"><p style="font-size: 20px">Invoice Number</p></td>
                                     <td><p style="font-size: 20px">Description</p></td>
                                     <td><p style="font-size: 20px">Date</p></td>
                                     <td><p style="font-size: 20px">Expiration Date</p></td>
-                                    <td><p style="font-size: 20px">Customer ID</p></td>
+                                    <td style="text-align: right"><p style="font-size: 20px">Customer ID</p></td>
                                     <td><p style="font-size: 20px">General ledger account</p></td>
                                     <td style="text-align: right"><p style="font-size: 20px">Base amount</p></td>
                                     <td style="text-align: right"><p style="font-size: 20px">VAT</p></td>
@@ -31,16 +31,16 @@
                             <tbody>
                                 {% for object in page_obj %}
                                     <tr>
-                                        <td>{{ object.invoice_number }}</td>
+                                        <td style="text-align: right">{{ object.invoice_number }}</td>
                                         <td>{{ object.description }}</td>
                                         <td>{{ object.date }}</td>
                                         <td>{{ object.expiration_date }}</td>
-                                        <td>{{ object.external_customer_id }}</td>
+                                        <td style="text-align: right">{{ object.external_customer_id }}</td>
                                         <td>{{ object.gl_account }}</td>
-                                        <td style="text-align: right">€{{ object.base_amount|floatformat:2 }}</td>
-                                        <td style="text-align: right">€{{ object.vat_amount|floatformat:2 }}</td>
-                                        <td style="text-align: right">€{{ object.total_amount|floatformat:2 }}</td>
-                                        <td style="text-align: right">€{{ object.balance|floatformat:2 }}</td>
+                                        <td style="text-align: right">€{{ object.base_amount }}</td>
+                                        <td style="text-align: right">€{{ object.vat_amount }}</td>
+                                        <td style="text-align: right">€{{ object.total_amount }}</td>
+                                        <td style="text-align: right">€{{ object.balance }}</td>
                                         <td style="text-align: center">Unimplemented</td>
                                         <td><a class="link-primary" href="{% url 'invoice_details' company_id object.invoice_id %}">Details</a></td>
                                     </tr>

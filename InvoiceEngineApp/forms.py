@@ -377,7 +377,8 @@ class ContractPersonFormSet(forms.BaseModelFormSet):
             if not start_date:
                 continue
 
-            if start_date == self.contract.start_date:
+            if start_date <= self.contract.start_date \
+                    and (not end_date or end_date >= self.contract.start_date):
                 contract_start_percentage \
                     += cleaned_data.get('percentage_of_total')
 
