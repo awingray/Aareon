@@ -1,3 +1,5 @@
+from django.http import HttpResponseRedirect
+
 from InvoiceEngineApp.forms import ComponentForm
 from InvoiceEngineApp.models import Component
 from InvoiceEngineApp.views.parent_views import (
@@ -18,6 +20,11 @@ class ComponentCreateView(ParentCreateView):
         form = super().get_form()
         form.filter_selectors(self.kwargs.get('company_id'))
         return form
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.create(self.kwargs)
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class ComponentUpdateView(ParentUpdateView):
