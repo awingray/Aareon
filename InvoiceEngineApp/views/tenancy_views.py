@@ -10,7 +10,6 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import (
-    CreateView,
     DetailView,
     ListView,
     UpdateView,
@@ -44,7 +43,7 @@ def export_collections(request, company_id):
     print(Collection.objects.all().exists())
 
     if not collection_list:
-        return HttpResponse()
+        return HttpResponseRedirect(reverse('tenancy_list'))
 
     field_names = [
         'name', 'address', 'city', 'payment_method', 'payment_day',
@@ -101,7 +100,6 @@ def export_glposts(request, company_id):
     )
 
 
-@login_required(login_url='/login/')
 def general_export(model, company_id, tenancy_id, file_name):
     date = Invoice.objects.aggregate(Max('date')).get('date__max')
     qs = list(
@@ -113,7 +111,7 @@ def general_export(model, company_id, tenancy_id, file_name):
     )
 
     if not qs:
-        return HttpResponse()
+        return HttpResponseRedirect(reverse('tenancy_list'))
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = \

@@ -31,6 +31,9 @@
                     <a class="btn btn-primary" href="{% url 'tenancy_details' object.company_id %}">Details</a>
                     <a class="btn btn-primary"href="{% url 'tenancy_update' object.company_id %}">Update</a>
                     <a class="btn btn-dark" href="{% url 'invoice_contracts' object.company_id %}">Invoice contracts</a>
+                    <a class="btn btn-outline-primary" href="{% url 'export_glposts' object.company_id %}">Export GL</a>
+                    <a class="btn btn-outline-primary" href="{% url 'export_collections' object.company_id %}">Export Collections</a>
+                    <a class="btn btn-outline-primary" href="{% url 'export_invoices' object.company_id %}">Export Invoices</a>
                 </div>
             </div>
         {% empty %}
