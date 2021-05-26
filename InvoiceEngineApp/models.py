@@ -568,6 +568,7 @@ class Contract(TenancyDependentModel):
             components = list(components)
             for component in components:
                 component.end_date = self.end_date
+                component.date_next_prolongation = None
                 base, vat, total, unit = component.get_amounts_between_dates(
                     self.end_date,
                     min(component.end_date + dt.timedelta(days=1),
@@ -594,12 +595,15 @@ class Contract(TenancyDependentModel):
                     invoice,
                     new_collections
                 )
+            invoice.create_gl_post(new_gl_posts)
 
             self.date_next_prolongation = None
 
             with transaction.atomic():
                 for component in components:
-                    component.save(update_fields=['end_date'])
+                    component.save(
+                        update_fields=['end_date', 'date_next_prolongation']
+                    )
                 for person in persons:
                     person.save(update_fields=['end_date'])
                 invoice.save()
