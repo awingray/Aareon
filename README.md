@@ -10,7 +10,7 @@
 
 #### Benchmarking
 For benchmarking, a file named 'benchmark.py' is included in the root folder. This file contains the following functions:
-- generate_benchmark_data(max_components) to fill the database with 100000 contracts.
+- generate_benchmark_data(max_components) to fill the database with contracts.
 - clear_database() to remove everything(!) from the database in a quick manner
 - clear_invoices() to remove all invoices from the database so that run_invoice_engine() can be used again without having to generate new benchmarking data
 - run_invoice_engine() to measure the speed of the invoicing process
@@ -29,6 +29,5 @@ Do note that if you make changes to benchmark.py, you have to restart the manage
 #### Testing
 Use "python manage.py test" to run tests.
 
-#### Notes to TA
-- The contract has some database constraints, but not yet a message to the user. To create a contract with a standard "invoicing period" (month, quarter, half year, or year) do NOT fill in the "invoicing amount of days". Conversely, if you choose the custom option, DO fill in that particular field.
-- The way we handle checking the user against the tenancy in every view is a band-aid solution. This is up for overhaul in the next sprint. We thought this particular issue was especially worth mentioning because it is such a key aspect of this application.
+#### Deployment
+The application has not been deployed.
