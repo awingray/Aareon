@@ -8,7 +8,10 @@ from InvoiceEngineApp.models import (
     Contract,
     Component,
     Invoice,
-    ContractPerson
+    ContractPerson,
+    InvoiceLine,
+    Collection,
+    GeneralLedgerPost
 )
 
 
@@ -18,19 +21,19 @@ def generate_benchmark_data(max_components):
     # 4 VAT rates
     # 10 contract types
     # 24 base components
-    # 100 000 contracts with 1 - max_components contract lines each & 1 - 2 contract persons
+    # 20000 contracts with 1 - max_components contract lines each & 1 - 2 contract persons
     start_time = datetime.datetime.now()
     print("started populating db at " + start_time.__str__())
 
     amount_of_contract_types = 10
     amount_of_base_components = 24
     amount_of_vat_rates = 4
-    amount_of_contracts = 20000
+    amount_of_contracts = 50000
     max_contract_persons = 2
 
     tenancy = Tenancy.objects.create(
         tenancy_id=113582,
-        day_next_prolong=datetime.date.today(),
+        date_next_prolongation=datetime.date.today(),
         name='TestCorp',
         days_until_invoice_expiration=14,
         number_of_contracts=amount_of_contracts
@@ -93,10 +96,9 @@ def generate_benchmark_data(max_components):
             contract_type=random.choice(contract_types),
             status='S',
             invoicing_start_day=1,
-            internal_customer_id=27,
             external_customer_id=5,
             start_date=datetime.date(2017, 5, 5),
-            next_date_prolong=datetime.date(2021, 4, 6),
+            date_next_prolongation=datetime.date(2021, 4, 6),
             general_ledger_dimension_contract_1="dim1",
             general_ledger_dimension_contract_2="dim2"
         )
@@ -116,7 +118,7 @@ def generate_benchmark_data(max_components):
                 vat_rate=vat_rate,
                 description="test component " + j.__str__() + " of contract " + i.__str__(),
                 start_date=datetime.date(2017, 5, 5),
-                next_date_prolong=datetime.date(2021, 4, 6),
+                date_next_prolongation=datetime.date(2021, 4, 6),
                 base_amount=base_amount,
                 vat_amount=vat_amount,
                 total_amount=total_amount,
@@ -176,6 +178,19 @@ def clear_invoices():
     print("started clearing invoices at " + datetime.datetime.now().__str__())
     Invoice.objects.all().delete()
     print("ended clearing invoices at " + datetime.datetime.now().__str__())
+
+
+def clear_contracts_and_invoices():
+    print("started clearing at " + datetime.datetime.now().__str__())
+    GeneralLedgerPost.objects.all().delete()
+    InvoiceLine.objects.all().delete()
+    Collection.objects.all().delete()
+    Invoice.objects.all().delete()
+    Component.objects.all().delete()
+    ContractPerson.objects.all().delete()
+    Contract.objects.all().delete()
+    Tenancy.objects.all().update(last_invoice_number=0, number_of_contracts=0)
+    print("ended clearing at " + datetime.datetime.now().__str__())
 
 
 def run_invoice_engine():

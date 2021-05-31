@@ -1,64 +1,55 @@
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.forms import modelformset_factory
+from django.http import HttpResponseRedirect, Http404
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
 
-from InvoiceEngineApp.forms import ContractPersonForm
+from InvoiceEngineApp.forms import ContractPersonFormSet
 from InvoiceEngineApp.models import ContractPerson, Contract
-from InvoiceEngineApp.views.parent_views import (
-    ParentCreateView,
-    ParentUpdateView,
-    ParentDeleteView
-)
 
 
-class ContractPersonCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
-    form_class = ContractPersonForm
+@login_required(login_url='/login/')
+def contract_person_update_view(request, company_id, contract_id):
+    FormSet = modelformset_factory(
+        ContractPerson,
+        exclude=('contract', 'tenancy'),
+        formset=ContractPersonFormSet,
+        extra=1,
+        can_delete=True
+    )
 
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract person"
-        self.list_page = "contract_list"
+    contract = get_object_or_404(Contract, contract_id=contract_id)
+    if not contract.can_update():
+        raise Http404("This action is not allowed.")
+    queryset = contract.contractperson_set.all()
 
-    def post(self, request, *args, **kwargs):
-        """
-        Handle POST requests: instantiate a form instance with the passed
-        POST variables, set the tenancy and the contract, and then check if it's valid.
-        """
-        self.object = None
+    if request.method == 'POST':
+        formset = FormSet(request.POST, request.FILES, queryset=queryset)
+        formset.set_contract(contract)
+        if formset.is_valid():
+            for form in formset.forms:
+                form.instance.contract_id = contract_id
+                form.instance.tenancy_id = company_id
+            formset.save()
 
-        form = self.get_form()
-        form.set_dependencies(self.tenancy, self.kwargs.get('contract_id'))
-        if form.is_valid():
-            return self.form_valid(form)
-        else:
-            return self.form_invalid(form)
+            return HttpResponseRedirect(
+                reverse(
+                    "contract_details",
+                    args=[
+                        company_id,
+                        contract_id
+                    ]
+                )
+            )
+    else:
+        formset = FormSet(queryset=queryset)
 
+    context = {
+        'formset': formset,
+        'company_id': company_id,
+        'contract_id': contract_id
+    }
 
-class ContractPersonUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
-    form_class = ContractPersonForm
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract person"
-        self.list_page = "contract_list"
-
-    def get_object(self, queryset=ContractPerson.objects.all()):
-        contract_person_id = self.kwargs.get('contract_person_id')
-        qs = queryset.filter(contract_person_id=contract_person_id)
-        qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
-
-
-class ContractPersonDeleteView(ParentDeleteView):
-    template_name = 'InvoiceEngineApp/delete.html'
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "contract person"
-        self.list_page = "contract_list"
-
-    def get_object(self, queryset=ContractPerson.objects.all()):
-        contract_person_id = self.kwargs.get('contract_person_id')
-        qs = queryset.filter(contract_person_id=contract_person_id)
-        qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs)
+    return render(
+        request, 'InvoiceEngineApp/manage_contract_persons.html', context
+    )

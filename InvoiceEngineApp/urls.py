@@ -8,7 +8,6 @@ from InvoiceEngineApp.views.contract_views import *
 from InvoiceEngineApp.views.component_views import *
 from InvoiceEngineApp.views.contract_person_views import *
 from InvoiceEngineApp.views.invoice_views import *
-from InvoiceEngineApp.views.glpost_views import *
 
 
 urlpatterns = [
@@ -16,13 +15,21 @@ urlpatterns = [
     path('', HomePage.as_view()),
     path('profile/', UserProfilePage.as_view(), name='profile'),
 
+    # Exporting urls.
+    path('profile/tenancies/<int:company_id>/invoices/export',
+         export_invoices,
+         name='export_invoices'),
+    path('profile/tenancies/<int:company_id>/glposts/export',
+         export_glposts,
+         name='export_glposts'),
+    path('profile/tenancies/<int:company_id>/collections/export',
+         export_collections,
+         name='export_collections'),
+
     # Tenancy pages.
     path('profile/tenancies/',
          TenancyListView.as_view(),
          name='tenancy_list'),
-    path('profile/tenancies/create/',
-         TenancyCreateView.as_view(),
-         name='tenancy_create'),
     path('profile/tenancies/<int:company_id>/',
          TenancyDetailView.as_view(),
          name='tenancy_details'),
@@ -34,8 +41,8 @@ urlpatterns = [
          name='tenancy_delete'),
 
     # This path is for testing the invoice_contracts button!
-    path('profile/tenancies/<int:company_id>/run_engine/',
-         TenancyListView.invoice_contracts,
+    path('profile/tenancies/<int:company_id>/invoice_contracts/',
+         invoice_contracts_view,
          name='invoice_contracts'
          ),
 
@@ -47,10 +54,6 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/contract_types/create/',
          ContractTypeCreateView.as_view(),
          name='contract_type_create'
-         ),
-    path('profile/tenancies/<int:company_id>/contract_types/<int:contract_type_id>/',
-         ContractTypeDetailView.as_view(),
-         name='contract_type_details'
          ),
     path('profile/tenancies/<int:company_id>/contract_types/<int:contract_type_id>/update/',
          ContractTypeUpdateView.as_view(),
@@ -70,10 +73,6 @@ urlpatterns = [
          BaseComponentCreateView.as_view(),
          name='base_component_create'
          ),
-    path('profile/tenancies/<int:company_id>/base_components/<int:base_component_id>/',
-         BaseComponentDetailView.as_view(),
-         name='base_component_details'
-         ),
     path('profile/tenancies/<int:company_id>/base_components/<int:base_component_id>/update/',
          BaseComponentUpdateView.as_view(),
          name='base_component_update'
@@ -91,10 +90,6 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/vat_rates/create/',
          VATRateCreateView.as_view(),
          name='vat_rate_create'
-         ),
-    path('profile/tenancies/<int:company_id>/vat_rates/<int:vat_rate_id>/',
-         VATRateDetailView.as_view(),
-         name='vat_rate_details'
          ),
     path('profile/tenancies/<int:company_id>/vat_rates/<int:vat_rate_id>/update/',
          VATRateUpdateView.as_view(),
@@ -126,6 +121,14 @@ urlpatterns = [
          ContractDeleteView.as_view(),
          name='contract_delete'
          ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/activate/',
+         contract_activation_view,
+         name='contract_activate'
+         ),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/deactivate/',
+         contract_ending_view,
+         name='contract_end'
+         ),
 
     # Component pages.
     path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/component/create/',
@@ -142,17 +145,9 @@ urlpatterns = [
          ),
 
     # Contract person pages.
-    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/create/',
-         ContractPersonCreateView.as_view(),
-         name='contract_person_create'
-         ),
-    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/<int:contract_person_id>/update/',
-         ContractPersonUpdateView.as_view(),
+    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/update/',
+         contract_person_update_view,
          name='contract_person_update'
-         ),
-    path('profile/tenancies/<int:company_id>/contracts/<int:contract_id>/contract_person/<int:contract_person_id>/delete/',
-         ContractPersonDeleteView.as_view(),
-         name='contract_person_delete'
          ),
 
     # Invoice pages.
@@ -163,15 +158,5 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/invoices/<int:invoice_id>/',
          InvoiceDetailView.as_view(),
          name='invoice_details'
-         ),
-
-    # General ledger post pages.
-    path('profile/tenancies/<int:company_id>/glposts/',
-         GLPostListView.as_view(),
-         name='glpost_list'
-         ),
-    path('profile/tenancies/<int:company_id>/glposts/<int:general_ledger_post_id>/',
-         GLPostDetailView.as_view(),
-         name='glpost_details'
          ),
 ]

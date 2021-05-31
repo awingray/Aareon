@@ -1,5 +1,4 @@
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404
 
 from InvoiceEngineApp.forms import ComponentForm
 from InvoiceEngineApp.models import Component
@@ -11,77 +10,71 @@ from InvoiceEngineApp.views.parent_views import (
 
 
 class ComponentCreateView(ParentCreateView):
-    template_name = 'InvoiceEngineApp/create.html'
     form_class = ComponentForm
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "component"
-        self.list_page = "contract_list"
+    list_page = "contract_details"
 
     def get_form(self, form_class=None):
-        """Overloaded to filter the selection of base components & VAT rates based on the tenancy."""
+        """Overloaded to filter the selection of base components & VAT rates
+        based on the tenancy.
+        """
         form = super().get_form()
-        form.filter_selectors(self.tenancy)
-        return form
-
-
-class ComponentUpdateView(ParentUpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
-    form_class = ComponentForm
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "component"
-        self.list_page = "contract_list"
-
-    def get_object(self, queryset=Component.objects.all()):
-        component_id = self.kwargs.get('component_id')
-        qs = queryset.filter(component_id=component_id)
-        qs = super().filter_by_tenancy(qs)
-        component = get_object_or_404(qs.select_related('contract'))
-
-        # Remove the amounts of this component from the contract to later add updated values
-        # Do not save the contract until the update is complete
-        component.contract.base_amount -= component.base_amount
-        component.contract.total_amount -= component.total_amount
-        component.contract.vat_amount -= component.vat_amount
-
-        return component
-
-    def get_form(self, form_class=None):
-        """Overloaded to filter the selection of contract types based on the tenancy."""
-        form = super().get_form()
-        form.filter_selectors(self.object.tenancy)
+        form.filter_selectors(self.kwargs.get('company_id'))
         return form
 
     def form_valid(self, form):
-        """Overload the form valid function to perform additional logic in the form."""
-        form.finalize_update()
+        self.object = form.save(commit=False)
+        self.object.create(self.kwargs)
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class ComponentUpdateView(ParentUpdateView):
+    """A component can only be updated when it has not been invoiced yet."""
+    model = Component
+    form_class = ComponentForm
+    list_page = "contract_details"
+    pk_url_kwarg = 'component_id'
+    is_contract = False
+    end_date = None
+    start_date = None
+
+    def get_form(self, form_class=None):
+        """Overloaded to filter the selection of contract types based on the
+        tenancy.
+        """
+        form = super().get_form()
+        form.filter_selectors(self.object.tenancy_id)
+        if not self.object.is_draft():
+            form.disable_fields()
+        return form
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.select_related('contract')
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        obj.remove_from_contract()
+        self.end_date = obj.end_date
+        self.start_date = obj.start_date
+        return obj
+
+    def form_valid(self, form):
+        """Overload the form valid function to perform additional logic in the
+        form.
+        """
+        if form.instance.is_draft():
+            form.instance.update()
+        if form.instance.end_date != self.end_date:
+            form.instance.change_end_date(self.end_date)
+        if form.instance.start_date != self.start_date:
+            form.instance.change_start_date(self.start_date)
         return super().form_valid(form)
 
 
 class ComponentDeleteView(ParentDeleteView):
-    template_name = 'InvoiceEngineApp/delete.html'
-
-    def __init__(self):
-        super().__init__()
-        self.object_type = "component"
-        self.list_page = "contract_list"
-
-    def get_object(self, queryset=Component.objects.all()):
-        component_id = self.kwargs.get('component_id')
-        qs = queryset.filter(component_id=component_id)
-        qs = super().filter_by_tenancy(qs)
-        return get_object_or_404(qs.select_related('contract'))
-
-    def delete(self, request, *args, **kwargs):
-        component = self.get_object()
-
-        component.contract.total_amount -= component.total_amount
-        component.contract.vat_amount -= component.vat_amount
-        component.contract.base_amount -= component.base_amount
-
-        component.contract.save()
-        component.delete()
-        return HttpResponseRedirect(self.get_success_url())
+    """A component can only be deleted when it has not been invoiced yet."""
+    model = Component
+    list_page = "contract_details"
+    success_page = "contract_details"
+    pk_url_kwarg = 'component_id'
+    is_contract = True
