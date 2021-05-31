@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from InvoiceEngineApp.forms import VATRateForm
 from InvoiceEngineApp.models import VATRate
 from InvoiceEngineApp.views.parent_views import (
@@ -27,8 +29,9 @@ class VATRateUpdateView(ParentUpdateView):
 
     def form_valid(self, form):
         self.object = form.instance
-        self.object.update_components(do_remove=False)
-        return super().form_valid(form)
+        with transaction.atomic():
+            self.object.update()
+            return super().form_valid(form)
 
 
 class VATRateDeleteView(ParentDeleteView):

@@ -359,6 +359,10 @@ class VATRate(TenancyDependentModel):
                     update_fields=['successor_vat_rate', 'end_date']
                 )
 
+    def update(self):
+        for component in self.component_set.all():
+            component.update()
+
     def delete(self, using=None, keep_parents=False):
         with transaction.atomic():
             for component in self.component_set.select_related('contract'):

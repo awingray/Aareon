@@ -128,7 +128,6 @@ class ParentDeleteView(TenancyAccessMixin, DeleteView):
     def get_success_url(self):
         args = []
         args.extend(self.kwargs.values())
-        args = args[:-1]
         if not self.is_contract:
             args = args[:-1]
         return reverse(self.success_page, args=args)

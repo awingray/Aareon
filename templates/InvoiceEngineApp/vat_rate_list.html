@@ -42,8 +42,12 @@
                                         <td>{{ object.gl_account }}</td>
                                         <td>{{ object.gl_dimension }}</td>
                                         <td style="text-align: center">
-                                            <a class="link-primary" href="{% url 'vat_rate_update' company_id object.vat_rate_id %}">Update</a>
-                                            <a class="link-primary" href="{% url 'vat_rate_delete' company_id object.vat_rate_id %}">Delete</a>
+                                            {% if object.can_update %}
+                                                <a class="link-primary" href="{% url 'vat_rate_update' company_id object.vat_rate_id %}">Update</a>
+                                            {% endif %}
+                                            {% if object.can_delete %}
+                                                <a class="link-primary" href="{% url 'vat_rate_delete' company_id object.vat_rate_id %}">Delete</a>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                 </tbody>
