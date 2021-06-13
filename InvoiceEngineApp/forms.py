@@ -6,16 +6,6 @@ from django.db.models import Func
 from InvoiceEngineApp import models
 
 
-class TenancyAdministratorForm(forms.ModelForm):
-    """A form for the administrator to create a new tenancy."""
-    class Meta:
-        model = models.Tenancy
-        exclude = [
-            'number_of_contracts', 'last_invoice_number',
-            'days_until_invoice_expiration', 'date_next_prolongation'
-        ]
-
-
 class TenancySubscriberForm(forms.ModelForm):
     """A form for the user to update a tenancy."""
     class Meta:

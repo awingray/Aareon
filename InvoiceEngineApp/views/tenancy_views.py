@@ -5,19 +5,17 @@ from io import BytesIO, StringIO
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
-from django.http import HttpResponse, Http404, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import (
     DetailView,
     ListView,
-    UpdateView,
-    DeleteView
+    UpdateView
 )
 
-from InvoiceEngineApp.forms import TenancyAdministratorForm, \
-    TenancySubscriberForm
+from InvoiceEngineApp.forms import TenancySubscriberForm
 from InvoiceEngineApp.models import (
     Tenancy,
     Collection,
@@ -145,21 +143,13 @@ def invoice_contracts_view(request, company_id):
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class TenancyListView(ListView):
     """Show the user a list of all tenancies available to them."""
+    template_name = 'InvoiceEngineApp/tenancy_list.html'
     model = Tenancy
     paginate_by = 10
-
-    def get_template_names(self):
-        # super().get_template_names()
-        if self.request.user.has_perm('InvoiceEngineApp.add_tenancy'):
-            return ['InvoiceEngineApp/tenancy_list_administrator.html']
-        return ['InvoiceEngineApp/tenancy_list.html']
 
     def get_queryset(self):
         # The user should only see the tenancy objects associated with themselves.
         qs = super().get_queryset()
-        if self.request.user.has_perm('InvoiceEngineApp.add_tenancy'):
-            return qs
-
         return qs.filter(tenancy_id=self.request.user.username)
 
 
@@ -174,9 +164,6 @@ class TenancyDetailView(DetailView):
 
     def get_object(self, queryset=Tenancy.objects.all()):
         qs = Tenancy.objects.filter(company_id=self.kwargs.get('company_id'))
-        if self.request.user.has_perm('InvoiceEngineApp.add_tenancy'):
-            return get_object_or_404(qs)
-
         return get_object_or_404(qs.filter(tenancy_id=self.request.user.username))
 
 
@@ -188,39 +175,11 @@ class TenancyUpdateView(UpdateView):
     """
     template_name = 'InvoiceEngineApp/display_form.html'
     extra_context = {'object_type': "tenancy"}
-
-    def get_form_class(self):
-        if self.request.user.has_perm('add_tenancy'):
-            return TenancyAdministratorForm
-        return TenancySubscriberForm
+    form_class = TenancySubscriberForm
 
     def get_object(self, queryset=Tenancy.objects.all()):
         qs = Tenancy.objects.filter(company_id=self.kwargs.get('company_id'))
-        if self.request.user.has_perm('InvoiceEngineApp.add_tenancy'):
-            return get_object_or_404(qs)
-
         return get_object_or_404(qs.filter(tenancy_id=self.request.user.username))
-
-    def get_success_url(self):
-        return reverse('tenancy_list')
-
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class TenancyDeleteView(DeleteView):
-    """Allow the user to delete a certain tenancy.
-    This class need not check if the user has access to that tenancy, as they can only access this page for their own
-    tenancies as shown through TenancyListView.
-    """
-    template_name = 'InvoiceEngineApp/delete.html'
-    extra_context = {'object_type': "tenancy", 'list_page': ["tenancy_list"]}
-
-    def get_object(self, queryset=Tenancy.objects.all()):
-        if not self.request.user.has_perm('InvoiceEngineApp.add_tenancy'):
-            raise Http404('No Tenancy matches the given query.')
-
-        return get_object_or_404(
-            Tenancy.objects.filter(company_id=self.kwargs.get('company_id'))
-        )
 
     def get_success_url(self):
         return reverse('tenancy_list')

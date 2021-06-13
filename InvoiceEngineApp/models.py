@@ -404,6 +404,13 @@ class Contract(TenancyDependentModel):
         (HISTORIC, 'Historic')
     ]
 
+    PERIOD = 'P'
+    DAY = 'D'
+    PRICING_TYPE_CHOICES = [
+        (PERIOD, 'Per period'),
+        (DAY, 'Per day')
+    ]
+
     # Model fields
     contract_id = models.AutoField(primary_key=True)
     external_customer_id = models.PositiveIntegerField()
@@ -422,6 +429,12 @@ class Contract(TenancyDependentModel):
     # Only not null if invoicing_period is custom
     invoicing_amount_of_days = models.PositiveSmallIntegerField(
         null=True, blank=True
+    )
+
+    pricing_type = models.CharField(
+        max_length=1,
+        choices=PRICING_TYPE_CHOICES,
+        default=PERIOD
     )
 
     # Dates
@@ -534,6 +547,10 @@ class Contract(TenancyDependentModel):
         return self.status == Contract.TERMINATED
 
     def end(self):
+        """End the contract. If it is ended at a date that has already
+        been invoiced, send a correction invoice for the period between
+        the newly set end date and the last day that was invoiced.
+        """
         date_today = dt.date.today()
         self.end_date = self.termination_date
         self.status = Contract.ENDED
@@ -678,14 +695,25 @@ class Contract(TenancyDependentModel):
         return dt.date(year, month, day)
 
     def invoice(self, date_today, next_id, tenancy):
+        """Set the next invoicing date. If it is after the end date,
+        this will be handled later. The components need the date to
+        be there first.
+
+        Also create an invoice for this contract.
+        """
         self.date_prev_prolongation = self.date_next_prolongation
-        self.date_next_prolongation = self.compute_date_next_prolongation(
-            self.date_prev_prolongation
-        )
+        while self.date_next_prolongation <= date_today:
+            self.date_next_prolongation = self.compute_date_next_prolongation(
+                self.date_next_prolongation
+            )
 
         return self.create_invoice(date_today, next_id, tenancy)
 
     def end_invoicing(self):
+        """Definitively end this contract when its end date has been passed
+        by the next invoicing date. This is checked after invoicing the
+        contract and its components.
+        """
         if self.is_ended() and self.end_date < self.date_next_prolongation:
             self.date_next_prolongation = None
 
@@ -911,6 +939,15 @@ class Component(TenancyDependentModel):
         uses the amount of days in the period and the amount of days that
         should be invoiced in the period to get the appropriate amount.
         """
+        if self.contract.pricing_type == Contract.DAY:
+            days = (end_date - start_date).days
+            base_amount = self.base_amount * days if self.base_amount else 0
+            vat_amount = self.vat_amount * days
+            total_amount = self.total_amount * days
+            unit_amount = self.unit_amount * days if self.unit_amount else 0
+
+            return base_amount, vat_amount, total_amount, unit_amount
+
         am = 0
         am_type = self.base_amount if self.base_amount else self.unit_amount
 
@@ -1006,6 +1043,10 @@ class Component(TenancyDependentModel):
         return self.contract.is_draft()
 
     def create_correction_invoice(self, start_date, end_date, factor):
+        """Create an invoice with one invoice line, specifically for
+        this component. This can be needed in the case the start date
+        or end date have been changed, affection already invoiced periods.
+        """
         date_today = dt.date.today()
         invoice_id, invoice_line_id = get_next_invoice_id()
         invoice = self.contract.create_invoice(
@@ -1048,6 +1089,9 @@ class Component(TenancyDependentModel):
             self.tenancy.save(update_fields=['last_invoice_number'])
 
     def change_end_date(self, old_end_date):
+        """When the end date of this component is changed, check in what
+        period the new end date falls. Send a correction invoice if needed.
+        """
         if self.is_draft():
             return
 
@@ -1060,7 +1104,9 @@ class Component(TenancyDependentModel):
                     end = min(old_end_date, self.contract.date_next_prolongation)
                     self.create_correction_invoice(start, end, -1)
                 elif old_end_date < self.end_date and old_end_date < self.contract.date_next_prolongation:
-                    self.date_next_prolongation = None if self.end_date < self.contract.date_next_prolongation else self.contract.date_next_prolongation
+                    self.date_next_prolongation = None \
+                        if self.end_date < self.contract.date_next_prolongation \
+                        else self.contract.date_next_prolongation
                     start = old_end_date
                     end = min(self.end_date, self.contract.date_next_prolongation)
                     self.create_correction_invoice(start, end, 1)
@@ -1078,6 +1124,9 @@ class Component(TenancyDependentModel):
                 self.create_correction_invoice(self.end_date, self.contract.date_next_prolongation, -1)
 
     def change_start_date(self, old_start_date):
+        """When the start date of this component is changed, check in what
+        period the new end date falls. Send a correction invoice if needed.
+        """
         if self.is_draft():
             return
 
@@ -1131,6 +1180,10 @@ class Component(TenancyDependentModel):
         new_invoice_lines.append(invoice_line)
 
     def invoice(self, next_id, invoice, new_invoice_lines, new_gl_posts):
+        """Method called during the normal invoicing process. Compute what needs
+        to be paid based on the length of the period and the start and end date
+        of this component (they may be within the invoicing period).
+        """
         contract = invoice.contract
         if (contract.date_next_prolongation
                 and self.date_next_prolongation >= contract.date_next_prolongation):
@@ -1180,7 +1233,7 @@ class Component(TenancyDependentModel):
                 self.vat_amount = 0
                 vat_amount = 0
 
-        if not days_period == days_invoicing:
+        if days_period != days_invoicing and self.contract.pricing_type == Contract.PERIOD:
             vat_amount = mul_f(vat_amount, days_invoicing / days_period)
             if base_amount:
                 base_amount = mul_f(base_amount, days_invoicing / days_period)
@@ -1188,6 +1241,14 @@ class Component(TenancyDependentModel):
             if unit_amount:
                 unit_amount = mul_f(unit_amount, days_invoicing / days_period)
                 total_amount = mul_d(unit_amount, self.number_of_units) + vat_amount
+
+        if self.contract.pricing_type == Contract.DAY:
+            if base_amount:
+                base_amount *= days_invoicing
+            if unit_amount:
+                unit_amount *= days_invoicing
+            vat_amount *= days_invoicing
+            total_amount *= days_invoicing
 
         if is_ending:
             contract.remove_component(self)
@@ -1236,7 +1297,7 @@ class ContractPerson(TenancyDependentModel):
     email = models.EmailField(null=True, default=None)
     phone = models.CharField(max_length=15, null=True, default=None)
     percentage_of_total = models.DecimalField(max_digits=5, decimal_places=2)
-    payment_day = models.PositiveIntegerField(null=True, default=None)
+    payment_day = models.PositiveIntegerField(null=True, default=1)
 
     def __str__(self):
         return "contract person " + self.name

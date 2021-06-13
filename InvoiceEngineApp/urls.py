@@ -36,9 +36,6 @@ urlpatterns = [
     path('profile/tenancies/<int:company_id>/update/',
          TenancyUpdateView.as_view(),
          name='tenancy_update'),
-    path('profile/tenancies/<int:company_id>/delete/',
-         TenancyDeleteView.as_view(),
-         name='tenancy_delete'),
 
     # This path is for testing the invoice_contracts button!
     path('profile/tenancies/<int:company_id>/invoice_contracts/',

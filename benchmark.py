@@ -1,10 +1,10 @@
 import datetime
 import random
+
+from django.db import transaction
+from model_bakery import baker
 from InvoiceEngineApp.models import (
     Tenancy,
-    ContractType,
-    VATRate,
-    BaseComponent,
     Contract,
     Component,
     Invoice,
@@ -15,26 +15,25 @@ from InvoiceEngineApp.models import (
 )
 
 
-def generate_benchmark_data(max_components):
-    # We need:
-    # 1 tenancy
-    # 4 VAT rates
-    # 10 contract types
-    # 24 base components
-    # 20000 contracts with 1 - max_components contract lines each & 1 - 2 contract persons
+def generate_benchmark_data(amount_of_contract_types,
+                            amount_of_base_components,
+                            amount_of_vat_rates,
+                            amount_of_contracts,
+                            max_contract_persons,
+                            max_components):
+    """Function to fill the database with dummy data that can be
+    used to benchmark the invoicing procedure.
+
+    A caveat of this function is that max_contract_persons must be
+    a true divisor of 100.
+    """
     start_time = datetime.datetime.now()
     print("started populating db at " + start_time.__str__())
 
-    amount_of_contract_types = 10
-    amount_of_base_components = 24
-    amount_of_vat_rates = 4
-    amount_of_contracts = 50000
-    max_contract_persons = 2
-
-    tenancy = Tenancy.objects.create(
+    tenancy = baker.make(
+        'Tenancy',
         tenancy_id=113582,
         date_next_prolongation=datetime.date.today(),
-        name='TestCorp',
         days_until_invoice_expiration=14,
         number_of_contracts=amount_of_contracts
     )
@@ -42,41 +41,29 @@ def generate_benchmark_data(max_components):
     contract_types = []
     for i in range(amount_of_contract_types):
         contract_types.append(
-            ContractType.objects.create(
-                tenancy=tenancy,
-                general_ledger_debit='left',
-                general_ledger_credit='right',
-                code=5,
-                type='G',
-                description="test contract type " + i.__str__()
+            baker.make(
+                'ContractType',
+                tenancy=tenancy
             )
         )
 
     base_components = []
     for i in range(amount_of_base_components):
         base_components.append(
-            BaseComponent.objects.create(
+            baker.make(
+                'BaseComponent',
                 tenancy=tenancy,
-                code=15,
-                description="test base component " + i.__str__(),
-                general_ledger_debit='left',
-                general_ledger_credit='right',
-                general_ledger_dimension='dim',
-                unit_id="twenty"
+                unit_id=random.choice([None, random.randint(1, 932)])
             )
         )
 
     vat_rates = []
     for i in range(amount_of_vat_rates):
         vat_rates.append(
-            VATRate.objects.create(
+            baker.make(
+                'VATRate',
                 tenancy=tenancy,
-                type=29,
-                description="test vat rate " + i.__str__(),
-                start_date=datetime.date(2021, 1, 1),
-                percentage=(i*10.5) % 100,
-                general_ledger_account="acc",
-                general_ledger_dimension="dim"
+                percentage=(i * 10.5) % 100
             )
         )
 
@@ -90,76 +77,81 @@ def generate_benchmark_data(max_components):
             print("contract " + i.__str__())
         amount_of_components = random.randint(1, max_components)
         amount_of_contract_persons = random.randint(1, max_contract_persons)
-        contract = Contract(
+        contract = baker.prepare(
+            'Contract',
             contract_id=i,
             tenancy=tenancy,
             contract_type=random.choice(contract_types),
-            status='S',
-            invoicing_start_day=1,
-            external_customer_id=5,
-            start_date=datetime.date(2017, 5, 5),
-            date_next_prolongation=datetime.date(2021, 4, 6),
-            general_ledger_dimension_contract_1="dim1",
-            general_ledger_dimension_contract_2="dim2"
+            status=Contract.ACTIVE,
+            start_date=datetime.date(2021, 1, 1),
+            date_next_prolongation=datetime.date(2021, 1, 1)
         )
 
         for j in range(amount_of_components):
             vat_rate = random.choice(vat_rates)
+            base_component = random.choice(base_components)
 
-            base_amount = random.randint(100, 2000)
-            vat_amount = base_amount*vat_rate.percentage/100
-            total_amount = base_amount + vat_amount
+            if base_component.unit_id:
+                base_amount = None
+                unit_amount = random.randint(20, 300)
+                number_of_units = random.randint(1, 5)
+                total_without_vat = unit_amount * number_of_units
+            else:
+                base_amount = random.randint(100, 2000)
+                unit_amount = None
+                total_without_vat = base_amount
 
-            component = Component(
+            vat_amount = total_without_vat * vat_rate.percentage / 100
+            total_amount = total_without_vat + vat_amount
+
+            component = baker.prepare(
+                'Component',
                 component_id=total_components,
                 tenancy=tenancy,
                 contract=contract,
-                base_component=random.choice(base_components),
+                base_component=base_component,
                 vat_rate=vat_rate,
-                description="test component " + j.__str__() + " of contract " + i.__str__(),
-                start_date=datetime.date(2017, 5, 5),
-                date_next_prolongation=datetime.date(2021, 4, 6),
+                start_date=datetime.date(2021, 1, 1),
+                date_next_prolongation = datetime.date(2021, 1, 1),
                 base_amount=base_amount,
+                unit_amount=unit_amount,
                 vat_amount=vat_amount,
-                total_amount=total_amount,
+                total_amount=total_amount
             )
 
             contract.total_amount += total_amount
-            contract.base_amount += base_amount
+            contract.base_amount += total_without_vat
             contract.vat_amount += vat_amount
 
             components.append(component)
             total_components += 1
 
         for k in range(amount_of_contract_persons):
-            contract_person = ContractPerson(
-                contract_person_id=total_contract_persons,
-                tenancy=tenancy,
-                contract=contract,
-                type='P',
-                start_date=datetime.date(2017, 5, 5),
-                name='A. Lee',
-                address='Nijenborgh 4',
-                city='Groningen',
-                payment_method=ContractPerson.DIRECT_DEBIT,
-                iban='INGB 55598875',
-                mandate=555884,
-                email='random@randommail.org',
-                percentage_of_total=100/amount_of_contract_persons,
-                payment_day=5
+            contract_persons.append(
+                baker.prepare(
+                    'ContractPerson',
+                    contract_person_id=total_contract_persons,
+                    tenancy=tenancy,
+                    contract=contract,
+                    type='P',
+                    start_date=datetime.date(2021, 1, 1),
+                    percentage_of_total=100 / amount_of_contract_persons,
+                    payment_day=1
+                )
             )
-            contract_persons.append(contract_person)
+
             total_contract_persons += 1
 
         contracts.append(contract)
 
-    print("start adding contracts & components & contract persons to db")
-    Contract.objects.bulk_create(contracts)
-    print("Contracts done, starting components")
-    Component.objects.bulk_create(components)
-    print("components done, starting contract persons")
-    ContractPerson.objects.bulk_create(contract_persons)
-    print("done")
+    with transaction.atomic():
+        print("start adding contracts & components & contract persons to db")
+        Contract.objects.bulk_create(contracts)
+        print("Contracts done, starting components")
+        Component.objects.bulk_create(components)
+        print("components done, starting contract persons")
+        ContractPerson.objects.bulk_create(contract_persons)
+        print("done")
 
     end_time = datetime.datetime.now()
     print("started populating db at " + start_time.__str__())
