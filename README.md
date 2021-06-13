@@ -14,7 +14,7 @@ To run the application, Docker needs to be installed on your system. See https:/
 
 #### Benchmarking
 For benchmarking, a file named 'benchmark.py' is included in the root folder. This file contains the following functions:
-- `generate_benchmark_data(args)` to fill the database with contracts. It is possible to specify the following parameters:
+- `generate_benchmark_data(args)` to fill the database with contracts. Note that this function will create its own support objects (contract types, etc.) in any case; even if there are support files in the database already. It is possible to specify the following parameters:
 	* Number of Contract Types
 	* Number of Base Components
 	* Number of VAT Rates
@@ -37,7 +37,7 @@ In the shell, run the following commands:
 
 Do note that if you make changes to benchmark.py, you have to restart the manage.py shell.
 
-The last benchmark (13 Jun 2021) took 8 min for the 50000 contracts with 2.5 components on average each (see the following command: `benchmark.generate_benchmark_data(10, 13, 4, 50000, 4, 5)`).
+The last benchmark (13 Jun 2021) took 8 min for 50000 contracts with 2.5 components on average each (see the following command: `benchmark.generate_benchmark_data(10, 13, 4, 50000, 4, 5)`).
 
 #### Testing
 Use "python manage.py test" to run tests.
