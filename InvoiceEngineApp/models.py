@@ -1055,10 +1055,12 @@ class Component(TenancyDependentModel):
             if self.end_date:
                 # If an existing end date was replaced by a new one
                 if self.end_date < old_end_date and self.end_date < self.contract.date_next_prolongation:
+                    self.date_next_prolongation = None
                     start = self.end_date
                     end = min(old_end_date, self.contract.date_next_prolongation)
                     self.create_correction_invoice(start, end, -1)
                 elif old_end_date < self.end_date and old_end_date < self.contract.date_next_prolongation:
+                    self.date_next_prolongation = None if self.end_date < self.contract.date_next_prolongation else self.contract.date_next_prolongation
                     start = old_end_date
                     end = min(self.end_date, self.contract.date_next_prolongation)
                     self.create_correction_invoice(start, end, 1)
@@ -1066,11 +1068,13 @@ class Component(TenancyDependentModel):
                 # New end date is None
                 if old_end_date < self.contract.date_next_prolongation:
                     # send positive invoice for period between old end date and next invoicing date
+                    self.date_next_prolongation = self.contract.date_next_prolongation
                     self.create_correction_invoice(old_end_date, self.contract.date_next_prolongation, 1)
         else:
             # End date is changed from None to something
             if self.end_date < self.contract.date_next_prolongation:
                 # Send negative invoice for period between new end date and next invoicing date
+                self.date_next_prolongation = None
                 self.create_correction_invoice(self.end_date, self.contract.date_next_prolongation, -1)
 
     def change_start_date(self, old_start_date):
