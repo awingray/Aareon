@@ -1,6 +1,7 @@
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.contrib.auth.models import User
 from django.conf import settings
+
 
 class UserTestCase(TestCase):
     def setUp(self):
@@ -29,3 +30,20 @@ class UserTestCase(TestCase):
 
         self.assertEqual(redirect_path, settings.LOGIN_REDIRECT_URL)
         self.assertEqual(status_code, 200)
+
+
+class ClientTest(TestCase):
+    def test_details(self):
+        client = Client()
+        res = client.get('/')
+        self.assertEqual(res.status_code, 200)
+
+
+"""         self.user = User.objects.create(
+            first_name="johnContact",
+            username="5588899",
+            email="johnContact@example.com",
+            role="ADMIN",
+        )
+        self.user.set_password("password")
+        self.user.save() """

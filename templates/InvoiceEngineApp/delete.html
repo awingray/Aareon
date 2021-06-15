@@ -1,24 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Delete {{ object_type }}</title>
-</head>
-<body>
-    <form method="post">
+{% extends 'InvoiceEngineApp/base.html' %}
 
-        {% csrf_token %}
-
-        <p>Are you sure you want to delete "{{ object }}"?</p>
-
-        <!-- Some pages require a link back to the proper company_id. -->
+{% block navbar %}
+    <li class="nav-item">
         {% if list_page|length == 1 %}
-            <p><a href="{% url list_page.0 %}">Return to list</a></p>
+            <a class="nav-link" aria-current="page" href="{% url list_page.0 %}">Return</a>
+        {% elif list_page|length == 2 %}
+            <a class="nav-link" aria-current="page" href="{% url list_page.0 list_page.1 %}">Return</a>
         {% else %}
-            <p><a href="{% url list_page.0 list_page.1 %}">Return to list</a></p>
+            <a class="nav-link" aria-current="page" href="{% url list_page.0 list_page.1 list_page.2 %}">Return</a>
         {% endif %}
+    </li>
+{% endblock %}
 
-        <input type="submit" value="Confirm">
-    </form>
-</body>
-</html>
+{% block content %}
+    <div class="container">
+        {# General information section #}
+        <div class="card shadow p-3 mb-5 bg-body rounded">
+            <div class="card-body">
+                <div class="row">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <h5 style="padding-bottom: 15px">Are you sure you want to delete "{{ object }}"?</h5>
+
+                        <input type="submit" value="Confirm">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

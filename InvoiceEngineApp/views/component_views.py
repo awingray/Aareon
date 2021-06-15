@@ -1,118 +1,80 @@
-from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.generic import (
-    CreateView,
-    UpdateView,
-    DeleteView
-)
-from InvoiceEngineApp.models import Component, Tenancy
+
 from InvoiceEngineApp.forms import ComponentForm
+from InvoiceEngineApp.models import Component
+from InvoiceEngineApp.views.parent_views import (
+    ParentCreateView,
+    ParentUpdateView,
+    ParentDeleteView
+)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ComponentCreateView(CreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+class ComponentCreateView(ParentCreateView):
     form_class = ComponentForm
+    list_page = "contract_details"
 
-    def get_form_kwargs(self):
-        """Overloaded to add the company id to the kwargs,
-         so the selection for BaseComponent & VATRate can be filtered."""
-        kwargs = super(ComponentCreateView, self).get_form_kwargs()
-        kwargs['company_id'] = self.kwargs.get('company_id')
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super(ComponentCreateView, self).get_context_data(**kwargs)
-        context['object_type'] = "component"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
+    def get_form(self, form_class=None):
+        """Overloaded to filter the selection of base components & VAT rates
+        based on the tenancy.
+        """
+        form = super().get_form()
+        form.filter_selectors(self.kwargs.get('company_id'))
+        return form
 
     def form_valid(self, form):
-        # Add the reference to the proper contract to the contract.
-        contract_id = self.kwargs.get('contract_id')
-        form.finalize_creation(contract_id)
-
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
-
-    def get(self, *args, **kwargs):
-        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
-        return super().get(*args, **kwargs)
-
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ComponentUpdateView(UpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
-    form_class = ComponentForm
-    extra_context = {'object_type': "component"}
-
-    def get_form_kwargs(self):
-        """Overloaded to add the company id to the kwargs so the selection can be filtered."""
-        kwargs = super(ComponentUpdateView, self).get_form_kwargs()
-        kwargs['company_id'] = self.kwargs.get('company_id')
-        return kwargs
-
-    def get_object(self, queryset=Component.objects.all()):
-        component_id = self.kwargs.get('component_id')
-        component = get_object_or_404(
-            Component,
-            contract__tenancy__tenancy_id=self.request.user.username,
-            component_id=component_id
-        )
-
-        component.contract.base_amount -= component.base_amount
-        component.contract.total_amount -= component.total_amount
-        component.contract.balance -= component.total_amount
-        component.contract.vat_amount -= component.vat_amount
-
-        return component
-
-    def form_valid(self, form):
-        form.compute_derived_fields()
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
-
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ComponentDeleteView(DeleteView):
-    template_name = 'InvoiceEngineApp/delete.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(ComponentDeleteView, self).get_context_data(**kwargs)
-        context['object_type'] = "component"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
-
-    def get_object(self, queryset=Component.objects.all()):
-        component_id = self.kwargs.get('component_id')
-        component = get_object_or_404(
-            Component,
-            contract__tenancy__tenancy_id=self.request.user.username,
-            component_id=component_id
-        )
-        return component
-
-    def delete(self, request, *args, **kwargs):
-        component = self.get_object()
-
-        # Remove the amounts from the contract
-        contract = component.contract
-        contract.base_amount -= component.base_amount
-        contract.total_amount -= component.total_amount
-        contract.balance -= component.total_amount
-        contract.vat_amount -= component.vat_amount
-        contract.clean()
-        contract.save()
-
-        component.delete()
+        self.object = form.save(commit=False)
+        self.object.create(self.kwargs)
         return HttpResponseRedirect(self.get_success_url())
 
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
+
+class ComponentUpdateView(ParentUpdateView):
+    """A component can only be updated when it has not been invoiced yet."""
+    model = Component
+    form_class = ComponentForm
+    list_page = "contract_details"
+    pk_url_kwarg = 'component_id'
+    is_contract = False
+    end_date = None
+    start_date = None
+
+    def get_form(self, form_class=None):
+        """Overloaded to filter the selection of contract types based on the
+        tenancy.
+        """
+        form = super().get_form()
+        form.filter_selectors(self.object.tenancy_id)
+        if not self.object.is_draft():
+            form.disable_fields()
+        return form
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.select_related('contract')
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        obj.remove_from_contract()
+        self.end_date = obj.end_date
+        self.start_date = obj.start_date
+        return obj
+
+    def form_valid(self, form):
+        """Overload the form valid function to perform additional logic in the
+        form.
+        """
+        if form.instance.is_draft():
+            form.instance.update()
+        if form.instance.end_date != self.end_date:
+            form.instance.change_end_date(self.end_date)
+        if form.instance.start_date != self.start_date:
+            form.instance.change_start_date(self.start_date)
+        return super().form_valid(form)
+
+
+class ComponentDeleteView(ParentDeleteView):
+    """A component can only be deleted when it has not been invoiced yet."""
+    model = Component
+    list_page = "contract_details"
+    success_page = "contract_details"
+    pk_url_kwarg = 'component_id'
+    is_contract = True

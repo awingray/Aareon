@@ -1,118 +1,33 @@
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.shortcuts import get_object_or_404, render
-from django.utils.decorators import method_decorator
-from django.views.generic import (
-    CreateView,
-    DetailView,
-    ListView,
-    UpdateView,
-    DeleteView
-)
-from InvoiceEngineApp.models import ContractType, Tenancy
 from InvoiceEngineApp.forms import ContractTypeForm
+from InvoiceEngineApp.models import ContractType
+from InvoiceEngineApp.views.parent_views import (
+    ParentListView,
+    ParentCreateView,
+    ParentUpdateView,
+    ParentDeleteView,
+)
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractTypeListView(ListView):
+class ContractTypeListView(ParentListView):
     template_name = 'InvoiceEngineApp/contract_type_list.html'
-
-    def get_queryset(self):
-        company_id = self.kwargs.get('company_id')
-        return ContractType.objects.filter(
-            tenancy=get_object_or_404(
-                Tenancy,
-                tenancy_id=self.request.user.username,
-                company_id=company_id
-            )
-        )
-
-    def get(self, request, *args, **kwargs):
-        context = {'object_list': self.get_queryset(), 'company_id': self.kwargs.get('company_id')}
-        return render(request, self.template_name, context)
+    model = ContractType
+    ordering = ['code']
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractTypeCreateView(CreateView):
-    template_name = 'InvoiceEngineApp/create.html'
+class ContractTypeCreateView(ParentCreateView):
     form_class = ContractTypeForm
-
-    def get_context_data(self, **kwargs):
-        context = super(ContractTypeCreateView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract type"
-        context['list_page'] = ["contract_type_list", self.kwargs.get('company_id')]
-        return context
-
-    def form_valid(self, form):
-        # Add the reference to the proper tenancy to the contract type.
-        company_id = self.kwargs.get('company_id')
-        form.set_tenancy(company_id)
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('contract_type_list', args=[self.kwargs.get('company_id')])
-
-    def get(self, *args, **kwargs):
-        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
-        return super().get(*args, **kwargs)
+    list_page = "contract_type_list"
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractTypeDetailView(DetailView):
-    template_name = 'InvoiceEngineApp/details.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(ContractTypeDetailView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract type"
-        context['list_page'] = ["contract_type_list", self.kwargs.get('company_id')]
-        return context
-
-    def get_object(self, queryset=ContractType.objects.all()):
-        contract_type_id = self.kwargs.get('contract_type_id')
-        contract_type = get_object_or_404(
-            ContractType,
-            tenancy__tenancy_id=self.request.user.username,
-            contract_type_id=contract_type_id
-        )
-        return contract_type
-
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractTypeUpdateView(UpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
+class ContractTypeUpdateView(ParentUpdateView):
+    model = ContractType
     form_class = ContractTypeForm
-    extra_context = {'object_type': "contract type"}
-
-    def get_object(self, queryset=ContractType.objects.all()):
-        contract_type_id = self.kwargs.get('contract_type_id')
-        contract_type = get_object_or_404(
-            ContractType,
-            tenancy__tenancy_id=self.request.user.username,
-            contract_type_id=contract_type_id
-        )
-        return contract_type
-
-    def get_success_url(self):
-        return reverse('contract_type_list', args=[self.kwargs.get('company_id')])
+    list_page = "contract_type_list"
+    pk_url_kwarg = 'contract_type_id'
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractTypeDeleteView(DeleteView):
-    template_name = 'InvoiceEngineApp/delete.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(ContractTypeDeleteView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract type"
-        context['list_page'] = ["contract_type_list", self.kwargs.get('company_id')]
-        return context
-
-    def get_object(self, queryset=ContractType.objects.all()):
-        contract_type_id = self.kwargs.get('contract_type_id')
-        contract_type = get_object_or_404(
-            ContractType, tenancy__tenancy_id=self.request.user.username,
-            contract_type_id=contract_type_id
-        )
-        return contract_type
-
-    def get_success_url(self):
-        return reverse('contract_type_list', args=[self.kwargs.get('company_id')])
+class ContractTypeDeleteView(ParentDeleteView):
+    model = ContractType
+    list_page = "contract_type_list"
+    success_page = "contract_type_list"
+    pk_url_kwarg = 'contract_type_id'

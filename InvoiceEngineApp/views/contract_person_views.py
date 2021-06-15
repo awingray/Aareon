@@ -1,77 +1,55 @@
 from django.contrib.auth.decorators import login_required
+from django.forms import modelformset_factory
+from django.http import HttpResponseRedirect, Http404
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
-from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.generic import (
-    CreateView,
-    UpdateView,
-    DeleteView
-)
-from InvoiceEngineApp.models import ContractPerson, Tenancy
-from InvoiceEngineApp.forms import ContractPersonForm
+
+from InvoiceEngineApp.forms import ContractPersonFormSet
+from InvoiceEngineApp.models import ContractPerson, Contract
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractPersonCreateView(CreateView):
-    template_name = 'InvoiceEngineApp/create.html'
-    form_class = ContractPersonForm
+@login_required(login_url='/login/')
+def contract_person_update_view(request, company_id, contract_id):
+    FormSet = modelformset_factory(
+        ContractPerson,
+        exclude=('contract', 'tenancy'),
+        formset=ContractPersonFormSet,
+        extra=1,
+        can_delete=True
+    )
 
-    def get_context_data(self, **kwargs):
-        context = super(ContractPersonCreateView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract person"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
+    contract = get_object_or_404(Contract, contract_id=contract_id)
+    if not contract.can_update():
+        raise Http404("This action is not allowed.")
+    queryset = contract.contractperson_set.all()
 
-    def form_valid(self, form):
-        # Add the reference to the proper contract.
-        contract_id = self.kwargs.get('contract_id')
-        form.finalize_creation(contract_id)
+    if request.method == 'POST':
+        formset = FormSet(request.POST, request.FILES, queryset=queryset)
+        formset.set_contract(contract)
+        if formset.is_valid():
+            for form in formset.forms:
+                form.instance.contract_id = contract_id
+                form.instance.tenancy_id = company_id
+            formset.save()
 
-        return super().form_valid(form)
+            return HttpResponseRedirect(
+                reverse(
+                    "contract_details",
+                    args=[
+                        company_id,
+                        contract_id
+                    ]
+                )
+            )
+    else:
+        formset = FormSet(queryset=queryset)
 
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
+    context = {
+        'formset': formset,
+        'company_id': company_id,
+        'contract_id': contract_id
+    }
 
-    def get(self, *args, **kwargs):
-        get_object_or_404(Tenancy, company_id=self.kwargs.get('company_id'), tenancy_id=self.request.user.username)
-        return super().get(*args, **kwargs)
-
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractPersonUpdateView(UpdateView):
-    template_name = 'InvoiceEngineApp/update.html'
-    form_class = ContractPersonForm
-    extra_context = {'object_type': "contract person"}
-
-    def get_object(self, queryset=ContractPerson.objects.all()):
-        contract_person_id = self.kwargs.get('contract_person_id')
-        return get_object_or_404(
-            ContractPerson,
-            contract__tenancy__tenancy_id=self.request.user.username,
-            contract_person_id=contract_person_id
-        )
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
-
-
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
-class ContractPersonDeleteView(DeleteView):
-    template_name = 'InvoiceEngineApp/delete.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(ContractPersonDeleteView, self).get_context_data(**kwargs)
-        context['object_type'] = "contract person"
-        context['list_page'] = ["contract_list", self.kwargs.get('company_id')]
-        return context
-
-    def get_object(self, queryset=ContractPerson.objects.all()):
-        contract_person_id = self.kwargs.get('contract_person_id')
-        return get_object_or_404(
-            ContractPerson,
-            contract__tenancy__tenancy_id=self.request.user.username,
-            contract_person_id=contract_person_id
-        )
-
-    def get_success_url(self):
-        return reverse('contract_list', args=[self.kwargs.get('company_id')])
+    return render(
+        request, 'InvoiceEngineApp/manage_contract_persons.html', context
+    )
